@@ -63,6 +63,7 @@ class DocumentOut(CamelModel):
     checklist_item_id: str | None
     created_at: datetime
     verified_at: datetime | None
+    submitted_at: datetime | None
 
 
 class AttachmentOut(CamelModel):

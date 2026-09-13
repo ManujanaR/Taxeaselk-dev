@@ -79,7 +79,7 @@ def progress_of(eng: Engagement) -> int:
 def row(eng: Engagement) -> EngagementRow:
     from app.models import Document
     open_issues = [i for i in eng.issues if i.status != "resolved"]
-    docs = object_session(eng).query(Document.status).filter(Document.company_id == eng.company_id).all()
+    docs = object_session(eng).query(Document.status).filter(Document.company_id == eng.company_id, Document.submitted_at.isnot(None)).all()
     return EngagementRow(
         **EngagementOut.model_validate(eng).model_dump(),
         company_name=eng.company.company_name, tin_number=eng.company.tin_number,
@@ -111,8 +111,8 @@ class EngagementDetail(CamelModel):
 def engagement_detail(engagement_id: str, ap: AuditorProfile = Depends(current_auditor), db: Session = Depends(get_db)):
     from app.routers.documents import company_documents, checklist_out  # avoid circular import at module load
     eng = engagement_for_auditor(engagement_id, ap, db)
-    return EngagementDetail(engagement=row(eng), company=eng.company, documents=company_documents(db, eng.company_id),
-                            checklist=checklist_out(eng), issues=eng.issues, requests=eng.requests)
+    return EngagementDetail(engagement=row(eng), company=eng.company, documents=company_documents(db, eng.company_id, submitted_only=True),
+                            checklist=checklist_out(eng, submitted_only=True), issues=eng.issues, requests=eng.requests)
 
 
 def _transition(eng: Engagement, from_statuses: tuple, to: str):

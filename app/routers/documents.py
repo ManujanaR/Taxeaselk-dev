@@ -42,16 +42,22 @@ PRESETS = [
 ]
 
 
-def company_documents(db: Session, company_id: str) -> list[Document]:
-    return db.query(Document).filter(Document.company_id == company_id).order_by(Document.created_at.desc()).all()
+def company_documents(db: Session, company_id: str, submitted_only: bool = False) -> list[Document]:
+    q = db.query(Document).filter(Document.company_id == company_id)
+    if submitted_only:
+        q = q.filter(Document.submitted_at.isnot(None))
+    return q.order_by(Document.created_at.desc()).all()
 
 
-def checklist_out(eng: Engagement | None) -> list[ChecklistItemOut]:
+def checklist_out(eng: Engagement | None, submitted_only: bool = False) -> list[ChecklistItemOut]:
     if not eng:
         return []
-    return [ChecklistItemOut(id=c.id, name=c.name, category=c.category, description=c.description, required=c.required,
-                             order_index=c.order_index, provided_document_id=c.documents[0].id if c.documents else None)
-            for c in eng.checklist_items]
+    out = []
+    for c in eng.checklist_items:
+        docs = [d for d in c.documents if d.submitted_at or not submitted_only]
+        out.append(ChecklistItemOut(id=c.id, name=c.name, category=c.category, description=c.description, required=c.required,
+                                    order_index=c.order_index, provided_document_id=docs[0].id if docs else None))
+    return out
 
 
 # ---------- business ----------
@@ -64,6 +70,7 @@ class ChecklistView(CamelModel):
 
 class DocumentsView(CamelModel):
     uploaded_count: int
+    unsent_count: int
     verified_count: int
     review_required_count: int
     missing_count: int
@@ -77,7 +84,8 @@ def list_documents(co: Company = Depends(current_company), db: Session = Depends
     eng = live_engagement(db, co.id)
     items = checklist_out(eng if eng and eng.status != "invited" else None)
     return DocumentsView(
-        uploaded_count=len(docs), verified_count=sum(d.status == "verified" for d in docs),
+        uploaded_count=len(docs), unsent_count=sum(d.submitted_at is None for d in docs),
+        verified_count=sum(d.status == "verified" for d in docs),
         review_required_count=sum(d.status == "review_required" for d in docs),
         missing_count=sum(1 for i in items if i.required and not i.provided_document_id),
         documents=docs,
@@ -97,11 +105,13 @@ async def upload_document(file: UploadFile = File(...), doc_type: str = Form("Ge
             raise HTTPException(404, "Checklist item not found")
         doc_type = item.category or item.name
     stored, size, ctype = await files.save_upload(file)
+    # Documents stay private until the handover pack is submitted; once the pack is with the auditor, new uploads go straight through.
+    pack_sent = bool(eng and eng.status in ("under_review", "approved"))
     doc = Document(company_id=co.id, uploaded_by=co.user_id, checklist_item_id=item.id if item else None, name=file.filename,
-                   stored_name=stored, size_bytes=size, content_type=ctype, doc_type=doc_type)
+                   stored_name=stored, size_bytes=size, content_type=ctype, doc_type=doc_type, submitted_at=now() if pack_sent else None)
     db.add(doc)
     log(db, co.id, co.user_id, "DOCUMENT_UPLOADED", f"Uploaded {file.filename} ({doc_type}).", "success")
-    if eng and eng.status != "invited":
+    if pack_sent:
         notify(db, auditor_user_id(eng), "Client uploaded a document", f"{co.company_name} uploaded {file.filename}.",
                f"/auditor-documents?engagementId={eng.id}")
     db.commit()
@@ -119,7 +129,7 @@ def delete_document(document_id: str, co: Company = Depends(current_company), db
     files.delete_stored(doc.stored_name)
     log(db, co.id, co.user_id, "DOCUMENT_DELETED", f"Deleted {doc.name}.", "warning")
     eng = live_engagement(db, co.id)
-    if eng and eng.status != "invited":
+    if doc.submitted_at and eng and eng.status != "invited":
         touch(db, auditor_user_id(eng))
     db.delete(doc)
     db.commit()
@@ -136,7 +146,7 @@ def _can_access_company(db: Session, user: User, company_id: str) -> bool:
 @router.get("/documents/{document_id}/file")
 def download_document(document_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     doc = db.get(Document, document_id)
-    if not doc or not _can_access_company(db, user, doc.company_id):
+    if not doc or not _can_access_company(db, user, doc.company_id) or (user.role == "auditor" and not doc.submitted_at):
         raise HTTPException(404, "Document not found")
     return files.serve(doc.stored_name, doc.name, doc.content_type)
 
@@ -185,7 +195,7 @@ def publish_checklist(engagement_id: str, payload: ChecklistIn, ap: AuditorProfi
 def _auditor_document(db: Session, ap: AuditorProfile, document_id: str) -> tuple[Document, Engagement]:
     doc = db.get(Document, document_id)
     eng = live_engagement(db, doc.company_id) if doc else None
-    if not doc or not eng or eng.auditor_id != ap.id or eng.status == "invited":
+    if not doc or not doc.submitted_at or not eng or eng.auditor_id != ap.id or eng.status == "invited":
         raise HTTPException(404, "Document not found")
     return doc, eng
 

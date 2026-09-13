@@ -137,6 +137,7 @@ class Document(Base):
     status: Mapped[str] = mapped_column(String(20), default="uploaded")  # uploaded|verified|review_required
     verified_by: Mapped[str | None] = mapped_column(ForeignKey("users.id"))
     verified_at: Mapped[datetime | None] = mapped_column(UTCDateTime)
+    submitted_at: Mapped[datetime | None] = mapped_column(UTCDateTime)  # NULL until the handover pack is sent
 
     checklist_item: Mapped[ChecklistItem | None] = relationship(back_populates="documents")
 

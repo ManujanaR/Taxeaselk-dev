@@ -183,7 +183,9 @@ def handover(co: Company = Depends(current_company), db: Session = Depends(get_d
     if not _inputs(db, co):
         raise HTTPException(409, "Enter your financial figures before submitting")
     eng.status, eng.submitted_at = "under_review", now()
-    notify(db, auditor_user_id(eng), "Handover pack submitted", f"{co.company_name} submitted their audit pack for {eng.tax_year}.",
+    sent = db.query(Document).filter(Document.company_id == co.id, Document.submitted_at.is_(None)).update(
+        {"submitted_at": now()}, synchronize_session=False)
+    notify(db, auditor_user_id(eng), "Handover pack submitted", f"{co.company_name} submitted their audit pack for {eng.tax_year} ({sent} document(s)).",
            f"/companies?engagementId={eng.id}", "success")
     log(db, co.id, co.user_id, "HANDOVER_SUBMITTED", "Audit handover pack submitted to auditor.", "success")
     db.commit()

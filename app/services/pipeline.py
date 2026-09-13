@@ -28,8 +28,9 @@ def pipeline(company: Company, eng: Engagement | None) -> dict:
 
     s2, r2 = (100, "Figures Entered") if has_inputs else (0, "Awaiting Figures")
 
-    verified = sum(d.status == "verified" for d in docs)
-    s3, r3 = (int(verified / len(docs) * 100), f"{verified} / {len(docs)} Verified") if docs else (0, "No Documents")
+    sent = [d for d in docs if d.submitted_at]
+    verified = sum(d.status == "verified" for d in sent)
+    s3, r3 = (int(verified / len(sent) * 100), f"{verified} / {len(sent)} Verified") if sent else (0, "Pack Not Sent" if docs else "No Documents")
 
     s4, r4 = (100, "Pack Dispatched") if handed_over else (0, "Not Submitted")
 

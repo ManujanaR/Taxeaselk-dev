@@ -80,10 +80,12 @@ def test_full_engagement_flow(clients):
     doc_id = r.json()["id"]
     assert biz.post("/api/documents", files={"file": ("x.exe", b"MZ", "application/octet-stream")}).status_code == 415
     docs = biz.get("/api/documents").json()
-    assert docs["missingCount"] == 4 and docs["checklist"]["items"][0]["providedDocumentId"] == doc_id
-    assert aud.get(f"/api/documents/{doc_id}/file").status_code == 200
-    assert aud.post(f"/api/auditor/documents/{doc_id}/verify").json()["status"] == "verified"
-    assert biz.delete(f"/api/documents/{doc_id}").status_code == 409  # verified docs are immutable
+    assert docs["missingCount"] == 4 and docs["checklist"]["items"][0]["providedDocumentId"] == doc_id and docs["unsentCount"] == 1
+    # private until the handover pack is submitted
+    assert aud.get(f"/api/documents/{doc_id}/file").status_code == 404
+    assert aud.post(f"/api/auditor/documents/{doc_id}/verify").status_code == 404
+    assert aud.get(f"/api/auditor/engagements/{eng_id}").json()["documents"] == []
+    assert unread(aud) == 1  # no upload notification yet
 
     # financials -> waterfall
     r = biz.put("/api/financials", json={"revenue": 25e6, "costOfSales": 15.2e6, "operatingExpenses": 5.2e6,
@@ -99,6 +101,13 @@ def test_full_engagement_flow(clients):
     assert dash["steps"][1]["progressPercent"] == 100 and dash["auditorStatus"] == "active"
     assert biz.post("/api/handover").status_code == 204
     assert biz.get("/api/dashboard").json()["steps"][3]["progressPercent"] == 100
+    assert biz.get("/api/documents").json()["unsentCount"] == 0
+    assert len(aud.get(f"/api/auditor/engagements/{eng_id}").json()["documents"]) == 1
+    assert aud.get(f"/api/documents/{doc_id}/file").status_code == 200
+    assert aud.post(f"/api/auditor/documents/{doc_id}/verify").json()["status"] == "verified"
+    assert biz.delete(f"/api/documents/{doc_id}").status_code == 409  # verified docs are immutable
+    # after handover, new uploads reach the auditor immediately
+    assert biz.post("/api/documents", files={"file": ("tb.csv", b"a,b\n", "text/csv")}).json()["submittedAt"] is not None
 
     # issue -> respond with file -> resolve
     r = aud.post(f"/api/auditor/engagements/{eng_id}/issues", json={"title": "Entertainment add-back", "comment": "Sec 11(1)(c)", "severity": "critical"})

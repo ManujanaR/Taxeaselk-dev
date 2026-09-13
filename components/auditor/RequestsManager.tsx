@@ -1,142 +1,62 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { Search, Plus, Clock, CheckCircle2, AlertTriangle, Send, X, Check } from "lucide-react";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Plus, Bell, X, Building2 } from "lucide-react";
 import Card from "@/components/ui/Card";
 import StatCard from "@/components/ui/StatCard";
-import Badge from "@/components/ui/Badge";
+import Badge, { BadgeTone } from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
-import T from "@/components/layout/T";
 import { Field, Input, Select } from "@/components/ui/Input";
-import { useLanguage } from "@/lib/i18n/LanguageContext";
-import { AuditorRequestsSummary, AuditorRequestRow } from "@/lib/types";
+import { createRequest, remindRequest } from "@/lib/api/auditor";
+import { date, daysUntil } from "@/lib/format";
+import { errorMessage, toast } from "@/lib/toast";
+import type { EngagementRow, RequestRow } from "@/lib/types";
 
-export default function RequestsManager({ initial, companies = [] }: { initial: AuditorRequestsSummary; companies: { id: string; name: string }[] }) {
-  const { t } = useLanguage();
-  const [requests, setRequests] = useState<AuditorRequestRow[]>(initial.requests);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [modalOpen, setModalOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [successMsg, setSuccessMsg] = useState("");
-  const [remindingId, setRemindingId] = useState<string | null>(null);
-  const [notification, setNotification] = useState<string | null>(null);
+const STATUS: Record<RequestRow["status"], { label: string; tone: BadgeTone }> = {
+  pending: { label: "Pending", tone: "warning" },
+  responded: { label: "Responded", tone: "info" },
+  revision_requested: { label: "Revision Requested", tone: "critical" },
+  resolved: { label: "Resolved", tone: "success" },
+};
+const CATEGORIES = ["Financial Statements", "Fixed Assets", "Tax Reliefs", "Bank & Cash", "General Inquiry"];
 
-  // Form State
-  const [form, setForm] = useState({
-    company_name: companies.length > 0 ? companies[0].name : "",
-    title: "",
-    description: "",
-    category: "General Inquiry",
-    priority: "MEDIUM",
-    due_date: "2026-08-30",
-  });
+export default function RequestsManager({ requests, engagements }: { requests: RequestRow[]; engagements: EngagementRow[] }) {
+  const router = useRouter();
+  const [query, setQuery] = useState("");
+  const [open, setOpen] = useState(false);
+  const [form, setForm] = useState({ engagementId: engagements[0]?.id ?? "", title: "", description: "", category: CATEGORIES[0], priority: "MEDIUM", dueDate: "" });
+  const [busy, setBusy] = useState<string | null>(null);
 
-  const filteredRequests = useMemo(() => {
-    const q = searchQuery.toLowerCase().trim();
-    if (!q) return requests;
-    return requests.filter(
-      (r) =>
-        r.title.toLowerCase().includes(q) ||
-        r.requestId.toLowerCase().includes(q) ||
-        r.companyName.toLowerCase().includes(q) ||
-        r.category.toLowerCase().includes(q)
-    );
-  }, [requests, searchQuery]);
+  const rows = requests.filter((r) => (r.companyName + r.title + r.referenceCode).toLowerCase().includes(query.toLowerCase()));
+  const count = (s: RequestRow["status"]) => requests.filter((r) => r.status === s).length;
 
-  const pendingCount = useMemo(
-    () => requests.filter((r) => r.status === "pending").length,
-    [requests]
-  );
-  const respondedCount = useMemo(
-    () => requests.filter((r) => r.status === "responded").length,
-    [requests]
-  );
-  const resolvedCount = useMemo(
-    () => requests.filter((r) => r.status === "resolved").length,
-    [requests]
-  );
-
-  async function handleCreateRequest(e: React.FormEvent) {
+  async function submit(e: React.FormEvent) {
     e.preventDefault();
-    setLoading(true);
-    setSuccessMsg("");
-
+    setBusy("new");
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-      const token = typeof window !== "undefined" ? localStorage.getItem("taxease_token") : null;
-      const headers: Record<string, string> = { "Content-Type": "application/json" };
-      if (token) {
-        headers["Authorization"] = `Bearer ${token}`;
-      }
-
-      const res = await fetch(`${apiUrl}/api/auditor/requests`, {
-        method: "POST",
-        headers,
-        body: JSON.stringify(form),
-      });
-
-      if (res.ok) {
-        const newRfi = await res.json();
-        const mappedRow: AuditorRequestRow = {
-          id: String(newRfi.id),
-          requestId: newRfi.reference_code || `REQ-2026-00${requests.length + 1}`,
-          companyName: newRfi.company_name || "Assigned Company",
-          title: newRfi.title,
-          description: newRfi.description,
-          category: newRfi.category,
-          status: "pending",
-          priority: (newRfi.priority?.toLowerCase() === "high"
-            ? "high"
-            : newRfi.priority?.toLowerCase() === "medium"
-            ? "medium"
-            : "low") as any,
-          requestedDate: "Today",
-          dueDate: newRfi.due_date || form.due_date,
-        };
-
-        setRequests((prev) => [mappedRow, ...prev]);
-        setSuccessMsg("Request created and sent to company successfully!");
-        setTimeout(() => {
-          setModalOpen(false);
-          setSuccessMsg("");
-          setForm({
-            company_name: companies.length > 0 ? companies[0].name : "",
-            title: "",
-            description: "",
-            category: "General Inquiry",
-            priority: "MEDIUM",
-            due_date: "2026-08-30",
-          });
-        }, 1200);
-      }
-    } catch {
-      // Ignored
+      const { engagementId, ...payload } = form;
+      await createRequest(engagementId, { ...payload, dueDate: payload.dueDate || null });
+      toast.success("Request sent; the client has been notified.");
+      setOpen(false);
+      setForm({ ...form, title: "", description: "", dueDate: "" });
+      router.refresh();
+    } catch (err) {
+      toast.error(errorMessage(err));
     } finally {
-      setLoading(false);
+      setBusy(null);
     }
   }
 
-  async function handleRemind(reqId: string, companyName: string) {
-    setRemindingId(reqId);
+  async function remind(r: RequestRow) {
+    setBusy(r.id);
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-      const token = typeof window !== "undefined" ? localStorage.getItem("taxease_token") : null;
-      const headers: Record<string, string> = { "Content-Type": "application/json" };
-      if (token) {
-        headers["Authorization"] = `Bearer ${token}`;
-      }
-
-      await fetch(`${apiUrl}/api/auditor/requests/${reqId}/remind`, {
-        method: "POST",
-        headers,
-      });
-
-      setNotification(`Reminder successfully sent to ${companyName}!`);
-      setTimeout(() => setNotification(null), 3500);
-    } catch {
-      // Ignored
+      await remindRequest(r.id);
+      toast.success(`Reminder sent to ${r.companyName}.`);
+    } catch (err) {
+      toast.error(errorMessage(err));
     } finally {
-      setRemindingId(null);
+      setBusy(null);
     }
   }
 
@@ -144,280 +64,86 @@ export default function RequestsManager({ initial, companies = [] }: { initial: 
     <div>
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">
-            <T k="pages.requests.title" />
-          </h1>
-          <p className="mt-1 text-sm text-gray-500">
-            <T k="pages.requests.subtitle" />
-          </p>
+          <h1 className="text-2xl font-bold text-gray-900">Requests for Information</h1>
+          <p className="mt-1 text-sm text-gray-500">Formal RFIs issued to your clients and their clearance status.</p>
         </div>
-        <div className="flex gap-2">
-          <Button
-            icon={<Plus className="h-4 w-4" />}
-            onClick={() => setModalOpen(true)}
-          >
-            {t("auditor.requests.newRequest")}
-          </Button>
-        </div>
+        <Button icon={<Plus className="h-4 w-4" />} onClick={() => setOpen(true)} disabled={!engagements.length} title={engagements.length ? undefined : "No active engagements"}>New Request</Button>
       </div>
 
-      {notification && (
-        <div className="mt-4 rounded-lg border border-green-200 bg-green-50 p-3 text-sm font-medium text-green-800 flex items-center justify-between">
-          <span>{notification}</span>
-          <button onClick={() => setNotification(null)} className="text-green-600 hover:text-green-800">
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-      )}
-
-      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-4">
-        <StatCard
-          label="Total Requests"
-          value={String(requests.length)}
-          hint="All client requests"
-        />
-        <StatCard
-          label="Awaiting Response"
-          value={String(pendingCount)}
-          valueClassName={pendingCount > 0 ? "text-amber-600" : ""}
-          hint="Action required by company"
-        />
-        <StatCard
-          label="Responses Received"
-          value={String(respondedCount)}
-          valueClassName="text-blue-600"
-          hint="Ready for auditor review"
-        />
-        <StatCard
-          label="Resolved"
-          value={String(resolvedCount)}
-          valueClassName="text-green-600"
-          hint="Closed inquiries"
-        />
+      <div className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-4">
+        <StatCard label="Total" value={requests.length} />
+        <StatCard label="Pending" value={count("pending") + count("revision_requested")} valueClassName="text-status-warning" />
+        <StatCard label="Responded" value={count("responded")} valueClassName="text-brand-blue" />
+        <StatCard label="Resolved" value={count("resolved")} valueClassName="text-status-success" />
       </div>
 
-      <Card className="mt-6 p-4">
-        <div className="relative">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-          <input
-            type="search"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search requests by title, reference, or company..."
-            className="w-full rounded-lg border border-gray-200 py-2.5 pl-9 pr-3 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-brand-blue"
-          />
+      <Card className="mt-6 overflow-hidden">
+        <div className="border-b border-gray-100 p-3">
+          <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search by company, title or reference" className="w-80 rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-brand-blue focus:outline-none" />
         </div>
-      </Card>
-
-      <Card className="mt-4 overflow-x-auto">
-        <table className="w-full min-w-[900px] text-left text-sm">
-          <thead>
-            <tr className="border-b border-gray-100 text-xs font-medium uppercase tracking-wide text-gray-400">
-              <th className="px-5 py-3">Reference</th>
-              <th className="px-5 py-3">{t("common.company")}</th>
-              <th className="px-5 py-3">Request Details</th>
-              <th className="px-5 py-3">Priority</th>
-              <th className="px-5 py-3">{t("common.status")}</th>
-              <th className="px-5 py-3">{t("auditor.requests.dueDate")}</th>
-              <th className="px-5 py-3 text-right">{t("common.actions")}</th>
+        <table className="w-full text-sm">
+          <thead className="bg-gray-50 text-left text-xs uppercase tracking-wide text-gray-500">
+            <tr>
+              <th className="px-4 py-3">Reference</th>
+              <th className="px-4 py-3">Client</th>
+              <th className="px-4 py-3">Request</th>
+              <th className="px-4 py-3">Priority</th>
+              <th className="px-4 py-3">Due</th>
+              <th className="px-4 py-3">Status</th>
+              <th className="px-4 py-3 text-right">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50">
-            {filteredRequests.length === 0 ? (
-              <tr>
-                <td colSpan={7} className="py-12 text-center text-gray-400">
-                  <Clock className="mx-auto h-8 w-8 text-gray-300 stroke-1 mb-2" />
-                  <p className="text-sm font-medium text-gray-600">No requests found</p>
-                  <p className="text-xs text-gray-400 mt-0.5">Information and document requests sent to client companies will appear here.</p>
-                </td>
-              </tr>
-            ) : (
-              filteredRequests.map((req) => (
-                <tr key={req.id} className="hover:bg-gray-50/50">
-                  <td className="px-5 py-4 font-mono text-xs font-semibold text-gray-500">
-                    {req.requestId}
+            {rows.length === 0 && <tr><td colSpan={7} className="px-4 py-10 text-center text-gray-400">No requests yet.</td></tr>}
+            {rows.map((r) => {
+              const days = daysUntil(r.dueDate);
+              const active = r.status === "pending" || r.status === "revision_requested";
+              return (
+                <tr key={r.id} className="hover:bg-gray-50/60">
+                  <td className="px-4 py-3 font-mono text-xs text-gray-500">{r.referenceCode}</td>
+                  <td className="px-4 py-3"><span className="flex items-center gap-1.5 text-gray-800"><Building2 className="h-3.5 w-3.5 text-gray-400" />{r.companyName}</span></td>
+                  <td className="px-4 py-3">
+                    <p className="font-medium text-gray-800">{r.title}</p>
+                    <p className="text-[11px] text-gray-400">{r.category}</p>
                   </td>
-                  <td className="px-5 py-4 font-medium text-gray-800">
-                    {req.companyName}
+                  <td className="px-4 py-3"><Badge tone={r.priority === "HIGH" ? "critical" : r.priority === "MEDIUM" ? "warning" : "info"}>{r.priority}</Badge></td>
+                  <td className={`px-4 py-3 text-xs ${active && days !== null && days < 0 ? "font-semibold text-red-600" : "text-gray-600"}`}>{r.dueDate ? date(r.dueDate) : "—"}{active && days !== null && days < 0 ? " (overdue)" : ""}</td>
+                  <td className="px-4 py-3"><Badge tone={STATUS[r.status].tone}>{STATUS[r.status].label}</Badge></td>
+                  <td className="px-4 py-3 text-right">
+                    {active && <Button variant="secondary" className="px-2.5 py-1.5 text-xs" icon={<Bell className="h-3.5 w-3.5" />} disabled={busy === r.id} onClick={() => remind(r)}>Remind</Button>}
                   </td>
-                <td className="px-5 py-4 max-w-sm">
-                  <p className="font-semibold text-gray-900">{req.title}</p>
-                  <p className="mt-0.5 text-xs text-gray-500 line-clamp-1">
-                    {req.description}
-                  </p>
-                  <span className="mt-1 inline-block rounded bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-600">
-                    {req.category}
-                  </span>
-                </td>
-                <td className="px-5 py-4">
-                  {req.priority === "high" && (
-                    <Badge tone="critical" className="inline-flex items-center gap-1">
-                      <AlertTriangle className="h-3 w-3" />
-                      High
-                    </Badge>
-                  )}
-                  {req.priority === "medium" && (
-                    <Badge tone="warning">Medium</Badge>
-                  )}
-                  {req.priority === "low" && (
-                    <Badge tone="neutral">Low</Badge>
-                  )}
-                </td>
-                <td className="px-5 py-4">
-                  {req.status === "pending" && (
-                    <Badge tone="warning" className="inline-flex items-center gap-1">
-                      <Clock className="h-3 w-3" />
-                      Pending
-                    </Badge>
-                  )}
-                  {req.status === "responded" && (
-                    <Badge tone="info" className="inline-flex items-center gap-1">
-                      <Send className="h-3 w-3" />
-                      Responded
-                    </Badge>
-                  )}
-                  {req.status === "resolved" && (
-                    <Badge tone="success" className="inline-flex items-center gap-1">
-                      <CheckCircle2 className="h-3 w-3" />
-                      Resolved
-                    </Badge>
-                  )}
-                </td>
-                <td className="px-5 py-4 text-gray-500">{req.dueDate}</td>
-                <td className="px-5 py-4 text-right">
-                  <div className="flex items-center justify-end gap-2">
-                    <Button variant="secondary" className="px-2.5 py-1 text-xs">
-                      {t("common.view")}
-                    </Button>
-                    {req.status === "pending" && (
-                      <Button
-                        variant="secondary"
-                        className="px-2.5 py-1 text-xs text-brand-blue"
-                        onClick={() => handleRemind(req.id, req.companyName)}
-                        disabled={remindingId === req.id}
-                      >
-                        {remindingId === req.id ? "Sending..." : "Remind"}
-                      </Button>
-                    )}
-                  </div>
-                </td>
-              </tr>
-              ))
-            )}
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </Card>
 
-      {/* Create New Request Modal */}
-      {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <Card className="w-full max-w-lg p-6">
-            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-              <p className="font-semibold text-gray-900">{t("auditor.requests.newRequest")}</p>
-              <button
-                type="button"
-                onClick={() => setModalOpen(false)}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <X className="h-5 w-5" />
-              </button>
+      {open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <Card className="w-full max-w-lg p-0">
+            <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
+              <h2 className="text-base font-bold text-gray-900">New Request for Information</h2>
+              <button onClick={() => setOpen(false)} className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100"><X className="h-5 w-5" /></button>
             </div>
-
-            {successMsg ? (
-              <div className="py-8 text-center">
-                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-50 text-status-success">
-                  <Check className="h-6 w-6" />
-                </div>
-                <p className="mt-3 font-semibold text-gray-900">{successMsg}</p>
+            <form onSubmit={submit} className="space-y-4 p-6">
+              <Field label="Target company" required>
+                <Select value={form.engagementId} onChange={(e) => setForm({ ...form, engagementId: e.target.value })}>
+                  {engagements.map((e) => <option key={e.id} value={e.id}>{e.companyName} ({e.taxYear})</option>)}
+                </Select>
+              </Field>
+              <Field label="Request title" required><Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required placeholder="e.g. Bank confirmation letters" /></Field>
+              <div className="grid grid-cols-3 gap-3">
+                <Field label="Category"><Select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>{CATEGORIES.map((c) => <option key={c}>{c}</option>)}</Select></Field>
+                <Field label="Priority"><Select value={form.priority} onChange={(e) => setForm({ ...form, priority: e.target.value })}><option>HIGH</option><option>MEDIUM</option><option>LOW</option></Select></Field>
+                <Field label="Due date"><Input type="date" value={form.dueDate} onChange={(e) => setForm({ ...form, dueDate: e.target.value })} /></Field>
               </div>
-            ) : (
-              <form onSubmit={handleCreateRequest} className="mt-4 flex flex-col gap-4">
-                <Field label="Client Company">
-                  {companies.length > 0 ? (
-                    <Select
-                      required
-                      value={form.company_name}
-                      onChange={(e) => setForm((f) => ({ ...f, company_name: e.target.value }))}
-                    >
-                      <option value="" disabled>Select assigned company</option>
-                      {companies.map((c) => (
-                        <option key={c.id} value={c.name}>{c.name}</option>
-                      ))}
-                    </Select>
-                  ) : (
-                    <Input
-                      required
-                      placeholder="e.g. Mr.Company(PVT)LTD or ABC Holdings"
-                      value={form.company_name}
-                      onChange={(e) => setForm((f) => ({ ...f, company_name: e.target.value }))}
-                    />
-                  )}
-                </Field>
-
-                <Field label={t("auditor.requests.requestTitle")}>
-                  <Input
-                    required
-                    placeholder="e.g. Clarification on Entertainment Expense Invoices"
-                    value={form.title}
-                    onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-                  />
-                </Field>
-
-                <Field label={t("auditor.requests.requestDesc")}>
-                  <textarea
-                    required
-                    rows={3}
-                    className="w-full rounded-lg border border-gray-300 px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-brand-blue focus:outline-none focus:ring-1 focus:ring-brand-blue"
-                    placeholder="Please specify which schedules or invoices are requested..."
-                    value={form.description}
-                    onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-                  />
-                </Field>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <Field label="Category">
-                    <Input
-                      required
-                      placeholder="e.g. Entertainment Expenses"
-                      value={form.category}
-                      onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
-                    />
-                  </Field>
-                  <Field label="Priority">
-                    <Select
-                      value={form.priority}
-                      onChange={(e) => setForm((f) => ({ ...f, priority: e.target.value }))}
-                    >
-                      <option value="LOW">Low</option>
-                      <option value="MEDIUM">Medium</option>
-                      <option value="HIGH">High</option>
-                    </Select>
-                  </Field>
-                </div>
-
-                <Field label={t("auditor.requests.dueDate")}>
-                  <Input
-                    type="date"
-                    required
-                    value={form.due_date}
-                    onChange={(e) => setForm((f) => ({ ...f, due_date: e.target.value }))}
-                  />
-                </Field>
-
-                <div className="mt-2 flex justify-end gap-2">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    onClick={() => setModalOpen(false)}
-                  >
-                    {t("common.cancel")}
-                  </Button>
-                  <Button type="submit" disabled={loading}>
-                    {loading ? "Sending..." : t("auditor.requests.newRequest")}
-                  </Button>
-                </div>
-              </form>
-            )}
+              <Field label="Detailed instructions"><textarea rows={4} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="w-full rounded-lg border border-gray-300 p-2.5 text-sm focus:border-brand-blue focus:outline-none focus:ring-1 focus:ring-brand-blue" /></Field>
+              <div className="flex justify-end gap-2">
+                <Button type="button" variant="secondary" onClick={() => setOpen(false)} disabled={busy === "new"}>Cancel</Button>
+                <Button type="submit" disabled={busy === "new"}>{busy === "new" ? "Sending..." : "Send Request"}</Button>
+              </div>
+            </form>
           </Card>
         </div>
       )}

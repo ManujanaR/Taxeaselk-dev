@@ -1,11 +1,11 @@
 import DocumentsManager from "@/components/business/DocumentsManager";
 import SubmitToAuditorButton from "@/components/business/SubmitToAuditorButton";
 import T from "@/components/layout/T";
-import { getDocumentsSummary, getCompanySettings } from "@/lib/api/business";
+import { apiServer } from "@/lib/api/server";
+import type { DashboardView, DocumentsView } from "@/lib/types";
 
 export default async function DocumentsPage() {
-  const settings = await getCompanySettings();
-  const data = await getDocumentsSummary(settings?.companyName);
+  const [data, dash] = await Promise.all([apiServer<DocumentsView>("/api/documents"), apiServer<DashboardView>("/api/dashboard")]);
 
   return (
     <div>
@@ -18,10 +18,9 @@ export default async function DocumentsPage() {
             <T k="pages.documents.subtitle" />
           </p>
         </div>
-        <SubmitToAuditorButton />
+        <SubmitToAuditorButton auditorStatus={dash.auditorStatus} hasFigures={dash.accountingProfit !== null} missingCount={data.missingCount} />
       </div>
-
-      <DocumentsManager initial={data} />
+      <DocumentsManager data={data} />
     </div>
   );
 }

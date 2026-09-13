@@ -1,39 +1,29 @@
-import { CheckCircle2, AlertTriangle, XCircle, Loader2 } from "lucide-react";
+import { CheckCircle2, AlertTriangle, Clock, Loader2 } from "lucide-react";
 import Badge from "@/components/ui/Badge";
-import T from "@/components/layout/T";
-import { DocumentStatus } from "@/lib/types";
+import type { DocStatus } from "@/lib/types";
 
-// Maps a document's status to the right Badge tone + icon + label, so
-// the table markup itself stays simple.
-export default function DocumentStatusBadge({
-  status,
-}: {
-  status: DocumentStatus;
-}) {
-  if (status === "processing") {
+export default function DocumentStatusBadge({ status }: { status: DocStatus | "uploading" }) {
+  if (status === "uploading")
     return (
       <Badge tone="info">
-        <Loader2 className="mr-1 h-3 w-3 animate-spin" /> <T k="status.processing" />
+        <Loader2 className="mr-1 h-3 w-3 animate-spin" /> Uploading
       </Badge>
     );
-  }
-  if (status === "processed") {
+  if (status === "verified")
     return (
       <Badge tone="success">
-        <CheckCircle2 className="mr-1 h-3 w-3" /> <T k="status.processed" />
+        <CheckCircle2 className="mr-1 h-3 w-3" /> Verified
       </Badge>
     );
-  }
-  if (status === "review_required") {
+  if (status === "review_required")
     return (
       <Badge tone="warning">
-        <AlertTriangle className="mr-1 h-3 w-3" /> <T k="status.reviewRequired" />
+        <AlertTriangle className="mr-1 h-3 w-3" /> Review Required
       </Badge>
     );
-  }
   return (
-    <Badge tone="critical">
-      <XCircle className="mr-1 h-3 w-3" /> <T k="status.missing" />
+    <Badge tone="pending">
+      <Clock className="mr-1 h-3 w-3" /> Awaiting Verification
     </Badge>
   );
 }

@@ -29,7 +29,7 @@ export default async function BusinessLayout({ children }: { children: React.Rea
           email={user.email}
           userId={formattedUserId(session)}
           settingsHref="/settings"
-          leftContent={<BusinessTopBarBadges initialCompanyName={company?.companyName ?? ""} initialFinancialYear={company?.financialYear ?? ""} />}
+          leftContent={<BusinessTopBarBadges companyName={company?.companyName ?? ""} financialYear={company?.financialYear ?? ""} />}
         />
         <main className="flex-1 overflow-y-auto p-8">{children}</main>
       </div>

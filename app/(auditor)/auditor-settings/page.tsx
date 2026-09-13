@@ -1,26 +1,21 @@
-import AuditorSettingsTabs from "@/components/auditor/AuditorSettingsTabs";
+import Card from "@/components/ui/Card";
 import AuditorProfileForm from "@/components/auditor/AuditorProfileForm";
-import T from "@/components/layout/T";
-import { getAuditorFullSettings } from "@/lib/api/auditor";
+import ChangePasswordForm from "@/components/ChangePasswordForm";
+import { apiServer } from "@/lib/api/server";
+import type { AuditorProfileFull } from "@/lib/types";
 
 export default async function AuditorSettingsPage() {
-  const settings = await getAuditorFullSettings();
-
+  const profile = await apiServer<AuditorProfileFull>("/api/auditor/profile");
   return (
-    <div>
-      <h1 className="text-2xl font-bold text-gray-900">
-        <T k="pages.settings.title" />
-      </h1>
-      <p className="mt-1 text-sm text-gray-500">
-        Manage your Chartered Accountant credentials, firm team, audit preferences, and security policies.
-      </p>
-
-      <div className="mt-6">
-        <AuditorSettingsTabs
-          initial={settings}
-          profileTabContent={<AuditorProfileForm initial={settings.profile} />}
-        />
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight text-gray-900">Auditor Settings</h1>
+        <p className="mt-1 text-sm text-gray-500">Professional credentials stamped on certified client tax returns.</p>
       </div>
+      <Card className="p-6">
+        <AuditorProfileForm initial={profile} />
+      </Card>
+      <ChangePasswordForm />
     </div>
   );
 }

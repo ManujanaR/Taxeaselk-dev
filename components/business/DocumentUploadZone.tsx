@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import { UploadCloud, AlertCircle, Sparkles, X } from "lucide-react";
 import Button from "@/components/ui/Button";
-import { validateFiles } from "@/lib/files";
+import { ACCEPT_ATTR, validateFiles } from "@/lib/files";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 
 // Visual drag & drop zone from the "Documents" Figma screen. This
@@ -100,7 +100,7 @@ export default function DocumentUploadZone({
           ref={effectiveInputRef}
           type="file"
           multiple
-          accept=".pdf,.xlsx,.xls,.csv"
+          accept={ACCEPT_ATTR}
           className="hidden"
           onChange={(e) => handleFiles(e.target.files)}
         />

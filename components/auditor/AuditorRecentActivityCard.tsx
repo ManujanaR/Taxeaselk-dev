@@ -1,124 +1,38 @@
-"use client";
-
-import { useEffect, useState } from "react";
-import { CheckCircle2, AlertTriangle, FileText, Send } from "lucide-react";
+import { CheckCircle2, AlertTriangle, Info } from "lucide-react";
 import Card from "@/components/ui/Card";
-import T from "@/components/layout/T";
-import {
-  AuditorActivityItem,
-  getAuditorActivities,
-  AUDITOR_ACTIVITY_EVENT,
-} from "@/lib/utils/auditorActivity";
+import { relative, titleCase } from "@/lib/format";
+import type { AuditLogEntry } from "@/lib/types";
 
-interface Props {
-  initialActivities: {
-    title: string;
-    company: string;
-    timeAgo: string;
-  }[];
-}
+const ICON = {
+  success: { icon: CheckCircle2, cls: "bg-emerald-50 text-emerald-600" },
+  warning: { icon: AlertTriangle, cls: "bg-amber-50 text-amber-600" },
+  info: { icon: Info, cls: "bg-blue-50 text-brand-blue" },
+};
 
-export default function AuditorRecentActivityCard({ initialActivities }: Props) {
-  const [activities, setActivities] = useState<AuditorActivityItem[]>(() => {
-    return initialActivities.map((a, idx) => ({
-      id: `init_${idx}`,
-      title: a.title,
-      company: a.company,
-      type: a.title.toLowerCase().includes("issue")
-        ? "issue"
-        : a.title.toLowerCase().includes("document")
-        ? "document"
-        : "approval",
-      timestamp: new Date().toISOString(),
-      timeAgo: a.timeAgo,
-    }));
-  });
-
-  useEffect(() => {
-    function syncActivities() {
-      const local = getAuditorActivities();
-      if (local.length > 0) {
-        // Merge recorded activities on top of initial defaults
-        const combined = [...local];
-        initialActivities.forEach((init, idx) => {
-          if (!combined.some((c) => c.title === init.title && c.company === init.company)) {
-            combined.push({
-              id: `init_${idx}`,
-              title: init.title,
-              company: init.company,
-              type: "approval",
-              timestamp: new Date().toISOString(),
-              timeAgo: init.timeAgo,
-            });
-          }
-        });
-        setActivities(combined.slice(0, 8));
-      }
-    }
-
-    syncActivities();
-    window.addEventListener(AUDITOR_ACTIVITY_EVENT, syncActivities);
-    window.addEventListener("storage", syncActivities);
-    return () => {
-      window.removeEventListener(AUDITOR_ACTIVITY_EVENT, syncActivities);
-      window.removeEventListener("storage", syncActivities);
-    };
-  }, [initialActivities]);
-
-  function renderIcon(type?: string) {
-    switch (type) {
-      case "issue":
-        return <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-status-warning" />;
-      case "document":
-        return <FileText className="mt-0.5 h-4 w-4 shrink-0 text-brand-blue" />;
-      case "request":
-        return <Send className="mt-0.5 h-4 w-4 shrink-0 text-purple-600" />;
-      default:
-        return <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-status-success" />;
-    }
-  }
-
+export default function AuditorRecentActivityCard({ activity }: { activity: AuditLogEntry[] }) {
   return (
     <Card className="p-5">
-      <div className="mb-3 flex items-center justify-between">
-        <p className="font-semibold text-gray-800">
-          <T k="auditor.dashboard.recentActivity" />
-        </p>
-        <span className="flex h-2 w-2 relative" title="Live real-time sync active">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-          <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-        </span>
-      </div>
-
-      {activities.length === 0 ? (
-        <div className="py-6 text-center">
-          <p className="text-xs text-gray-400">No audit activity logged yet.</p>
-        </div>
+      <p className="mb-3 font-semibold text-gray-800">Recent Activity</p>
+      {activity.length === 0 ? (
+        <p className="py-4 text-center text-sm text-gray-400">No activity yet.</p>
       ) : (
-        <div className="flex flex-col gap-3.5">
-          {activities.map((activity) => (
-            <div key={activity.id} className="flex items-start gap-2.5 transition-all">
-              {renderIcon(activity.type)}
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium text-gray-800 truncate">
-                  {activity.title}
-                </p>
-                <div className="flex items-center gap-1.5 mt-0.5">
-                  <span className="text-xs font-medium text-brand-blue truncate">
-                    {activity.company}
-                  </span>
-                  <span className="text-gray-300 text-xs">•</span>
-                  <span className="text-xs text-gray-400 whitespace-nowrap">
-                    {activity.timeAgo}
-                  </span>
+        <ul className="space-y-3">
+          {activity.map((a) => {
+            const t = ICON[a.tone] ?? ICON.info;
+            const Icon = t.icon;
+            return (
+              <li key={a.id} className="flex items-start gap-2.5">
+                <span className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md ${t.cls}`}><Icon className="h-3.5 w-3.5" /></span>
+                <div className="min-w-0">
+                  <p className="text-xs font-medium text-gray-800">{titleCase(a.eventType.toLowerCase())}</p>
+                  <p className="truncate text-[11px] text-gray-500">{a.companyName} · {a.details}</p>
+                  <p className="text-[10px] text-gray-400">{relative(a.createdAt)}</p>
                 </div>
-              </div>
-            </div>
-          ))}
-        </div>
+              </li>
+            );
+          })}
+        </ul>
       )}
     </Card>
-
   );
 }
-

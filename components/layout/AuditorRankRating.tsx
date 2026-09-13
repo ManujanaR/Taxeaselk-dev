@@ -1,313 +1,100 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { Trophy, Star, ShieldCheck, CheckCircle2, ChevronDown } from "lucide-react";
-import { useLanguage } from "@/lib/i18n/LanguageContext";
+import { useEffect, useRef, useState } from "react";
+import { Star, ChevronDown, ShieldCheck } from "lucide-react";
+import { api } from "@/lib/api/client";
+import { date } from "@/lib/format";
 
-export interface ClientReview {
-  id: string;
-  companyName: string;
-  rating: number;
-  date: string;
-  comment: string;
-  service: string;
-}
-
-export interface AuditorRatingState {
-  rankLabel: string;
-  overallRating: number;
+interface ReviewsOut {
+  averageRating: number | null;
   totalReviews: number;
+  timeliness: number | null;
+  communication: number | null;
+  technical: number | null;
   completedAudits: number;
-  onTimeSignOffRate: number;
-  breakdown: {
-    accuracy: number;
-    responsiveness: number;
-    turnaround: number;
-  };
-  recentReviews: ClientReview[];
+  reviews: { id: string; companyName: string; rating: number; comment: string; createdAt: string }[];
 }
 
-const DEFAULT_RATING_DATA: AuditorRatingState = {
-  rankLabel: "Verified Auditor",
-  overallRating: 0.0,
-  totalReviews: 0,
-  completedAudits: 0,
-  onTimeSignOffRate: 100,
-  breakdown: {
-    accuracy: 100,
-    responsiveness: 100,
-    turnaround: 100,
-  },
-  recentReviews: [],
-};
-
+// Top-bar badge showing the auditor's verified client rating; opens a reputation drawer.
 export default function AuditorRankRating() {
-  const { t } = useLanguage();
-  const [data, setData] = useState<AuditorRatingState>(DEFAULT_RATING_DATA);
+  const [data, setData] = useState<ReviewsOut | null>(null);
   const [open, setOpen] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    async function syncRating() {
-      try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-        let auditorEmail = "";
-        try {
-          const userStr = localStorage.getItem("taxease_user");
-          if (userStr) {
-            const u = JSON.parse(userStr);
-            if (u.email) auditorEmail = u.email;
-          }
-        } catch {}
-
-        if (auditorEmail) {
-          const res = await fetch(`${apiUrl}/api/auditors/${encodeURIComponent(auditorEmail)}/reviews`).catch(() => null);
-          if (res && res.ok) {
-            const apiData = await res.json();
-            if (apiData.success && typeof apiData.total_reviews === "number") {
-              setData((prev) => ({
-                ...prev,
-                rankLabel: apiData.total_reviews > 0 ? (apiData.rank || "Rank #1") : "Verified Auditor",
-                overallRating: apiData.average_rating || 0.0,
-                totalReviews: apiData.total_reviews || 0,
-                breakdown: {
-                  accuracy: Number(((apiData.subcategories?.technical_rigor || 5.0) * 20).toFixed(1)),
-                  responsiveness: Number(((apiData.subcategories?.communication || 5.0) * 20).toFixed(1)),
-                  turnaround: Number(((apiData.subcategories?.timeliness || 5.0) * 20).toFixed(1)),
-                },
-                recentReviews: (apiData.reviews && apiData.reviews.length > 0)
-                  ? apiData.reviews.slice(0, 5).map((r: any) => ({
-                      id: r.id,
-                      companyName: r.company_name,
-                      rating: Number(r.rating),
-                      date: r.created_at ? new Date(r.created_at).toLocaleDateString("en-GB") : "Recently",
-                      comment: r.review_comment || "Verified statutory review.",
-                      service: `Corporate Income Tax (${r.tax_year || "2025/26"})`,
-                    }))
-                  : [],
-              }));
-              return;
-            }
-          }
-        }
-
-        const saved = localStorage.getItem("taxease_auditor_rating");
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          setData({
-            ...DEFAULT_RATING_DATA,
-            ...parsed,
-          });
-          return;
-        }
-      } catch {
-        // Fallback to default state
-      }
-    }
-
-    syncRating();
-
-    window.addEventListener("storage", syncRating);
-    window.addEventListener("taxease_auditor_rating_updated", syncRating);
-
-    return () => {
-      window.removeEventListener("storage", syncRating);
-      window.removeEventListener("taxease_auditor_rating_updated", syncRating);
-    };
-  }, []);
-
-  // Close popover when clicking outside
-  useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    }
-    if (open) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
+    api<ReviewsOut>("/api/auditor/reviews").then(setData).catch(() => {});
   }, [open]);
 
-  // Star fill renderer
-  const renderStars = (rating: number, max = 5, sizeClass = "h-3.5 w-3.5") => {
-    return Array.from({ length: max }).map((_, index) => {
-      const starNumber = index + 1;
-      const isFilled = rating >= starNumber;
-      const isHalf = !isFilled && rating >= starNumber - 0.5;
+  useEffect(() => {
+    const onClick = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", onClick);
+    return () => document.removeEventListener("mousedown", onClick);
+  }, []);
 
-      return (
-        <span key={index} className="relative inline-block">
-          <Star
-            className={`${sizeClass} ${
-              isFilled
-                ? "text-amber-400 fill-amber-400"
-                : isHalf
-                ? "text-amber-400 fill-amber-200"
-                : "text-gray-200 fill-gray-100"
-            } transition-colors`}
-          />
-        </span>
-      );
-    });
-  };
+  const rating = data?.averageRating;
+  const bars: [string, number | null][] = [
+    ["Accuracy", data?.technical ?? null],
+    ["Responsiveness", data?.communication ?? null],
+    ["Turnaround", data?.timeliness ?? null],
+  ];
 
   return (
-    <div className="relative" ref={containerRef}>
-      {/* TopBar Interactive Badge */}
+    <div ref={ref} className="relative">
       <button
-        type="button"
-        onClick={() => setOpen((prev) => !prev)}
-        aria-expanded={open}
-        aria-label="View auditor ranking and client reviews"
-        className="flex items-center gap-2 rounded-lg border border-amber-200/90 bg-amber-50/70 hover:bg-amber-100/70 px-3 py-1.5 text-left transition-all duration-150 hover:shadow-sm focus:outline-none focus:ring-2 focus:ring-amber-400/40"
+        onClick={() => setOpen((o) => !o)}
+        className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-sm font-medium text-amber-800 hover:bg-amber-100"
       >
-        {/* Rank Badge */}
-        <div className="flex items-center gap-1.5">
-          <div className="flex h-5 w-5 items-center justify-center rounded-full bg-amber-500 text-white shadow-xs">
-            <Trophy className="h-3 w-3 fill-white" />
-          </div>
-          <div className="flex flex-col">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-amber-900 leading-none">
-              {data.rankLabel}
-            </span>
-            <span className="text-[9px] font-medium text-amber-700 leading-none mt-0.5">
-              {t("auditor.topBar.tier")}
-            </span>
-          </div>
-        </div>
-
-        {/* Vertical Divider */}
-        <div className="h-4 w-px bg-amber-300/80 mx-0.5" />
-
-        {/* Star Rating Display */}
-        <div className="flex items-center gap-1.5">
-          <div className="flex items-center gap-0.5">{renderStars(data.overallRating, 5, "h-3.5 w-3.5")}</div>
-          <span className="text-xs font-bold text-gray-900">{data.overallRating.toFixed(1)}</span>
-          <span className="hidden sm:inline text-[11px] font-medium text-amber-800/80">
-            ({data.totalReviews})
-          </span>
-          <ChevronDown className={`h-3 w-3 text-amber-700 transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
-        </div>
+        <ShieldCheck className="h-4 w-4 text-amber-600" />
+        <span>{rating ? "Verified Auditor" : "New Auditor"}</span>
+        <span className="flex items-center gap-0.5 font-bold">
+          <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-500" />
+          {rating ? rating.toFixed(1) : "—"}
+        </span>
+        <span className="text-xs text-amber-700">({data?.totalReviews ?? 0})</span>
+        <ChevronDown className="h-3.5 w-3.5 text-amber-600" />
       </button>
 
-      {/* Client Rating Breakdown Popover */}
       {open && (
-        <div className="absolute left-0 sm:right-0 sm:left-auto top-full mt-2 w-80 sm:w-96 rounded-xl border border-gray-200 bg-white p-4 shadow-xl z-50 animate-in fade-in slide-in-from-top-2 duration-150">
-          {/* Header */}
-          <div className="flex items-start justify-between border-b border-gray-100 pb-3">
-            <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-100 text-amber-700">
-                <ShieldCheck className="h-4 w-4" />
-              </div>
-              <div>
-                <h4 className="text-xs font-bold text-gray-900 uppercase tracking-wide">
-                  {t("auditor.topBar.ratingTitle")}
-                </h4>
-                <p className="text-[11px] text-gray-500">
-                  {data.rankLabel} • Certified Sri Lanka Tax Practitioner
-                </p>
-              </div>
-            </div>
-            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 border border-emerald-200">
-              <CheckCircle2 className="h-3 w-3" />
-              Verified Clients
-            </span>
+        <div className="absolute right-0 z-40 mt-2 w-80 rounded-card border border-gray-100 bg-white p-4 shadow-lg">
+          <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Reputation</p>
+          <div className="mt-2 flex items-end gap-2">
+            <span className="text-3xl font-extrabold text-gray-900">{rating ? rating.toFixed(1) : "—"}</span>
+            <span className="pb-1 text-sm text-gray-500">/ 5.0 from {data?.totalReviews ?? 0} client review{data?.totalReviews === 1 ? "" : "s"}</span>
           </div>
+          <p className="mt-1 text-xs text-gray-500">{data?.completedAudits ?? 0} audits signed off</p>
 
-          {/* Aggregate Rating Hero */}
-          <div className="mt-3 flex items-center justify-between rounded-lg bg-amber-50/60 border border-amber-100 p-3">
-            <div>
-              <div className="flex items-baseline gap-1.5">
-                <span className="text-2xl font-black text-gray-900">{data.overallRating.toFixed(1)}</span>
-                <span className="text-xs text-gray-500 font-medium">/ 5.0</span>
-              </div>
-              <div className="flex items-center gap-0.5 mt-0.5">{renderStars(data.overallRating, 5, "h-3.5 w-3.5")}</div>
-              <p className="text-[10px] text-gray-500 mt-1">
-                Based on {data.totalReviews} verified client ratings
-              </p>
-            </div>
-
-            <div className="text-right space-y-1 border-l border-amber-200/60 pl-3">
-              <div>
-                <div className="text-xs font-bold text-gray-900">{data.completedAudits}+</div>
-                <div className="text-[10px] text-gray-500">{t("auditor.topBar.completedAudits")}</div>
-              </div>
-              <div>
-                <div className="text-xs font-bold text-emerald-600">{data.onTimeSignOffRate}%</div>
-                <div className="text-[10px] text-gray-500">{t("auditor.topBar.onTimeFiling")}</div>
-              </div>
-            </div>
-          </div>
-
-          {/* Performance Pillars */}
-          <div className="mt-3 space-y-1.5 text-xs">
-            <div className="flex items-center justify-between text-[11px]">
-              <span className="text-gray-600">Tax Accuracy & Compliance</span>
-              <span className="font-semibold text-gray-900">{data.breakdown.accuracy}%</span>
-            </div>
-            <div className="h-1.5 w-full rounded-full bg-gray-100 overflow-hidden">
-              <div
-                className="h-full rounded-full bg-amber-500 transition-all duration-500"
-                style={{ width: `${data.breakdown.accuracy}%` }}
-              />
-            </div>
-
-            <div className="flex items-center justify-between text-[11px] pt-1">
-              <span className="text-gray-600">Auditor Responsiveness</span>
-              <span className="font-semibold text-gray-900">{data.breakdown.responsiveness}%</span>
-            </div>
-            <div className="h-1.5 w-full rounded-full bg-gray-100 overflow-hidden">
-              <div
-                className="h-full rounded-full bg-amber-500 transition-all duration-500"
-                style={{ width: `${data.breakdown.responsiveness}%` }}
-              />
-            </div>
-          </div>
-
-          {/* Client Feedback Snippets */}
-          <div className="mt-3 border-t border-gray-100 pt-2.5">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-gray-700">
-                {t("auditor.topBar.clientReviews")}
-              </span>
-              <span className="text-[10px] text-gray-400">Latest submissions</span>
-            </div>
-
-            <div className="space-y-2 max-h-44 overflow-y-auto pr-1">
-              {data.recentReviews.length === 0 ? (
-                <div className="rounded-md bg-gray-50/80 p-3 text-center text-xs text-gray-500 border border-gray-100">
-                  No verified client reviews on record yet.
+          <div className="mt-4 space-y-2">
+            {bars.map(([label, v]) => (
+              <div key={label}>
+                <div className="flex justify-between text-xs text-gray-600">
+                  <span>{label}</span>
+                  <span className="font-semibold">{v ? `${Math.round((v / 5) * 100)}%` : "—"}</span>
                 </div>
-              ) : (
-                data.recentReviews.map((rev) => (
-                  <div key={rev.id} className="rounded-md bg-gray-50/80 p-2 text-left border border-gray-100">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-semibold text-gray-800 truncate max-w-[170px]">
-                        {rev.companyName}
-                      </span>
-                      <div className="flex items-center gap-1">
-                        <Star className="h-2.5 w-2.5 fill-amber-400 text-amber-400" />
-                        <span className="text-[10px] font-bold text-gray-700">{rev.rating.toFixed(1)}</span>
-                      </div>
-                    </div>
-                    <p className="text-[11px] text-gray-600 line-clamp-2 mt-0.5">
-                      &ldquo;{rev.comment}&rdquo;
-                    </p>
-                    <div className="flex items-center justify-between mt-1 text-[9px] text-gray-400">
-                      <span className="truncate max-w-[180px]">{rev.service}</span>
-                      <span>{rev.date}</span>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
+                <div className="mt-1 h-1.5 rounded-full bg-gray-100">
+                  <div className="h-1.5 rounded-full bg-amber-400" style={{ width: `${v ? (v / 5) * 100 : 0}%` }} />
+                </div>
+              </div>
+            ))}
           </div>
+
+          {data && data.reviews.length > 0 && (
+            <div className="mt-4 max-h-48 space-y-2 overflow-y-auto border-t border-gray-100 pt-3">
+              {data.reviews.map((r) => (
+                <div key={r.id} className="rounded-lg bg-gray-50 p-2 text-xs">
+                  <div className="flex justify-between">
+                    <span className="font-semibold text-gray-800">{r.companyName}</span>
+                    <span className="text-amber-600">{r.rating} ★</span>
+                  </div>
+                  {r.comment && <p className="mt-1 text-gray-600">{r.comment}</p>}
+                  <p className="mt-1 text-[10px] text-gray-400">{date(r.createdAt)}</p>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>
   );
 }
-

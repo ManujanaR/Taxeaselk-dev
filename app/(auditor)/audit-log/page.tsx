@@ -1,68 +1,51 @@
-import { ChevronDown } from "lucide-react";
+import Link from "next/link";
 import Card from "@/components/ui/Card";
 import AuditActionBadge from "@/components/auditor/AuditActionBadge";
 import T from "@/components/layout/T";
-import { getAuditLogSummary } from "@/lib/api/auditor";
+import { apiServer } from "@/lib/api/server";
+import { dateTime, titleCase } from "@/lib/format";
+import type { AuditLogEntry, EngagementRow } from "@/lib/types";
 
-// Matches the "Audit Log" Figma screen: filter bar (visual only for
-// now — see TODO) and an immutable, timestamped table of every action.
-function FilterPill({ label }: { label: React.ReactNode }) {
-  return (
-    <button className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50">
-      {label}
-      <ChevronDown className="h-3.5 w-3.5 text-gray-400" />
-    </button>
-  );
-}
-
-export default async function AuditLogPage() {
-  const data = await getAuditLogSummary();
+export default async function AuditLogPage({ searchParams }: { searchParams: { companyId?: string } }) {
+  const companyId = searchParams.companyId;
+  const [entries, engagements] = await Promise.all([
+    apiServer<AuditLogEntry[]>(`/api/auditor/audit-log${companyId ? `?companyId=${companyId}` : ""}`),
+    apiServer<EngagementRow[]>("/api/auditor/engagements"),
+  ]);
+  const companies = Array.from(new Map(engagements.map((e) => [e.companyId, e.companyName])).entries());
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900">
-        <T k="pages.auditLog.title" />
-      </h1>
-      <p className="mt-1 text-sm text-gray-500">
-        <T k="pages.auditLog.subtitle" />
-      </p>
+      <h1 className="text-2xl font-bold text-gray-900"><T k="pages.auditLog.title" /></h1>
+      <p className="mt-1 text-sm text-gray-500"><T k="pages.auditLog.subtitle" /></p>
 
-      <Card className="mt-6 overflow-hidden">
-        {/* TODO (Week 2): wire these to actually filter the table below
-            once the log comes from the FastAPI backend (query params). */}
-        <div className="flex flex-wrap gap-2 border-b border-gray-100 p-4">
-          <FilterPill label={<T k="common.company" />} />
-          <FilterPill label={<T k="sidebar.companyUser" />} />
-          <FilterPill label={<T k="auditor.auditLog.colEvent" />} />
-          <FilterPill label={<T k="common.date" />} />
-          <FilterPill label={<T k="auditor.companies.colFy" />} />
-        </div>
+      <div className="mt-5 flex flex-wrap gap-2">
+        <Link href="/audit-log" className={`rounded-full px-3 py-1 text-xs font-semibold ${!companyId ? "bg-brand-blue text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>All companies</Link>
+        {companies.map(([id, name]) => (
+          <Link key={id} href={`/audit-log?companyId=${id}`} className={`rounded-full px-3 py-1 text-xs font-semibold ${companyId === id ? "bg-brand-blue text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>{name}</Link>
+        ))}
+      </div>
 
-        <table className="w-full min-w-[900px] text-left text-sm">
-          <thead>
-            <tr className="border-b border-gray-100 text-xs font-medium uppercase tracking-wide text-gray-400">
-              <th className="px-5 py-3"><T k="auditor.auditLog.colTimestamp" /></th>
-              <th className="px-5 py-3"><T k="common.company" /></th>
-              <th className="px-5 py-3"><T k="auditor.auditLog.colActor" /></th>
-              <th className="px-5 py-3"><T k="auditor.auditLog.colEvent" /></th>
-              <th className="px-5 py-3"><T k="common.details" /></th>
+      <Card className="mt-4 overflow-hidden">
+        <table className="w-full text-sm">
+          <thead className="bg-gray-50 text-left text-xs uppercase tracking-wide text-gray-500">
+            <tr>
+              <th className="px-4 py-3">Timestamp</th>
+              <th className="px-4 py-3">Company</th>
+              <th className="px-4 py-3">Actor</th>
+              <th className="px-4 py-3">Event</th>
+              <th className="px-4 py-3">Details</th>
             </tr>
           </thead>
-          <tbody>
-            {data.entries.map((entry) => (
-              <tr
-                key={entry.id}
-                className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60"
-              >
-                <td className="px-5 py-3.5 text-gray-500">{entry.timestamp}</td>
-                <td className="px-5 py-3.5 font-medium text-gray-900">
-                  {entry.company}
-                </td>
-                <td className="px-5 py-3.5 text-gray-600">{entry.user}</td>
-                <td className="px-5 py-3.5">
-                  <AuditActionBadge action={entry.action} tone={entry.actionTone} />
-                </td>
-                <td className="px-5 py-3.5 text-gray-500">{entry.details}</td>
+          <tbody className="divide-y divide-gray-50">
+            {entries.length === 0 && <tr><td colSpan={5} className="px-4 py-10 text-center text-gray-400">No entries yet.</td></tr>}
+            {entries.map((e) => (
+              <tr key={e.id}>
+                <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-gray-500">{dateTime(e.createdAt)}</td>
+                <td className="px-4 py-3 text-gray-800">{e.companyName}</td>
+                <td className="px-4 py-3 text-gray-600">{e.actorName} <span className="text-[10px] uppercase text-gray-400">({e.actorRole})</span></td>
+                <td className="px-4 py-3"><AuditActionBadge action={titleCase(e.eventType.toLowerCase())} tone={e.tone} /></td>
+                <td className="px-4 py-3 text-gray-600">{e.details}</td>
               </tr>
             ))}
           </tbody>

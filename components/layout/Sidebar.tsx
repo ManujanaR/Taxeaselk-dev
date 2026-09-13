@@ -8,6 +8,7 @@ import { ReactNode, useState, useEffect } from "react";
 import Logo from "@/components/ui/Logo";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { TranslationKey } from "@/lib/i18n/translations";
+import { getNavBadges } from "@/lib/api/notifications";
 
 export interface NavItem {
   href: string;
@@ -48,36 +49,18 @@ export default function Sidebar({
   const [liveBadges, setLiveBadges] = useState<Record<string, number>>({});
 
   useEffect(() => {
-    if (!badgeHrefs || badgeHrefs.length === 0) return;
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-    const token = localStorage.getItem("taxease_token");
-    const headers: Record<string, string> = {};
-    if (token) headers["Authorization"] = `Bearer ${token}`;
-
-    const portal = settingsHref.includes("auditor") ? "auditor" : "business";
-
+    if (!badgeHrefs?.length) return;
     async function fetchBadges() {
       try {
-        const res = await fetch(`${apiUrl}/api/nav/badge-counts?portal=${portal}`, { headers });
-        if (res.ok) {
-          const data = await res.json();
-          const mapped: Record<string, number> = {};
-          if (data.requests) mapped["/requests"] = data.requests;
-          if (data.responses) mapped["/responses"] = data.responses;
-          if (data.discussions) {
-            mapped["/auditor-discussions"] = data.discussions;
-            mapped["/discussions"] = data.discussions;
-          }
-          setLiveBadges(mapped);
-        }
-      } catch {
-        // silently fail — badges will not display
-      }
+        const b = await getNavBadges();
+        setLiveBadges({ "/requests": b.requests, "/responses": b.responses, "/auditor-discussions": b.threads, "/discussions": b.threads, "/auditor-review": b.requests });
+      } catch {}
     }
     fetchBadges();
-    const interval = setInterval(fetchBadges, 30000); // refresh every 30s
+    const interval = setInterval(fetchBadges, 30000);
     return () => clearInterval(interval);
-  }, [badgeHrefs]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [badgeHrefs?.join(",")]);
 
   return (
     <aside className="flex h-screen w-64 shrink-0 flex-col border-r border-gray-100 bg-white">

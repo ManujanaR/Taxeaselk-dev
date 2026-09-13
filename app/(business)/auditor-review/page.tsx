@@ -1,16 +1,17 @@
-import { Suspense } from "react";
 import Card from "@/components/ui/Card";
 import SummaryCountRow from "@/components/business/SummaryCountRow";
 import InviteAuditorButton from "@/components/business/InviteAuditorButton";
 import AuditorIssuesManager from "@/components/business/AuditorIssuesManager";
 import AssignedAuditorCard from "@/components/business/AssignedAuditorCard";
+import RequestsResponder from "@/components/business/RequestsResponder";
 import T from "@/components/layout/T";
-import { getAuditorReviewSummary } from "@/lib/api/business";
+import { apiServer } from "@/lib/api/server";
+import type { EngagementView, RfiRequest } from "@/lib/types";
 
-// Matches the "Auditor Review" Figma screen: assigned auditor card +
-// review summary counts, then a list of auditor comments/issues.
+// Assigned auditor + review summary, then the auditor's issues and RFIs to answer.
 export default async function AuditorReviewPage() {
-  const data = await getAuditorReviewSummary();
+  const [view, requests] = await Promise.all([apiServer<EngagementView>("/api/engagement"), apiServer<RfiRequest[]>("/api/requests")]);
+  const live = view.engagement && ["invited", "active", "under_review"].includes(view.engagement.status);
 
   return (
     <div>
@@ -23,36 +24,26 @@ export default async function AuditorReviewPage() {
             <T k="pages.auditorReview.subtitle" />
           </p>
         </div>
-        <InviteAuditorButton />
+        {!live && <InviteAuditorButton />}
       </div>
 
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_300px]">
-        <AssignedAuditorCard
-          auditorName={data.auditorName}
-          auditorFirm={data.auditorFirm}
-          auditorEmail={data.auditorEmail}
-          reviewStatus={data.reviewStatus}
-          submittedDate={data.submittedDate}
-          expectedByDate={data.expectedByDate}
-          reviewedPercent={data.reviewedPercent}
-        />
-
+        <AssignedAuditorCard view={view} />
         <Card className="p-5">
           <p className="mb-2 font-semibold text-gray-800">
             <T k="business.auditorReview.citStatus" />
           </p>
           <div className="divide-y divide-gray-50">
-            <SummaryCountRow label="Approved" count={data.approvedCount} tone="success" />
-            <SummaryCountRow label="Warnings" count={data.warningsCount} tone="warning" />
-            <SummaryCountRow label="Critical" count={data.criticalCount} tone="critical" />
-            <SummaryCountRow label="Pending" count={data.pendingCount} tone="neutral" />
+            <SummaryCountRow label="Resolved" count={view.approvedCount} tone="success" />
+            <SummaryCountRow label="Warnings" count={view.warningsCount} tone="warning" />
+            <SummaryCountRow label="Critical" count={view.criticalCount} tone="critical" />
+            <SummaryCountRow label="Awaiting auditor" count={view.pendingCount} tone="neutral" />
           </div>
         </Card>
       </div>
 
-      <Suspense fallback={<div className="mt-6 h-48 animate-pulse rounded-lg bg-gray-50" />}>
-        <AuditorIssuesManager initialIssues={data.issues} />
-      </Suspense>
+      <AuditorIssuesManager issues={view.issues} />
+      <RequestsResponder requests={requests} />
     </div>
   );
 }

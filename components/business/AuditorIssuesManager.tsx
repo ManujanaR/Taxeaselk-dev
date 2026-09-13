@@ -1,402 +1,148 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { useSearchParams } from "next/navigation";
-import {
-  AlertTriangle,
-  Check,
-  FileText,
-  Trash2,
-  UploadCloud,
-  X,
-} from "lucide-react";
-import clsx from "clsx";
+import { useEffect, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { AlertTriangle, CheckCircle2, Clock, Paperclip, X } from "lucide-react";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
-import { AuditorReviewIssue } from "@/lib/types";
-import { useLanguage } from "@/lib/i18n/LanguageContext";
+import { respondToIssue } from "@/lib/api/business";
+import { date, fileSize } from "@/lib/format";
+import { errorMessage, toast } from "@/lib/toast";
+import type { Issue } from "@/lib/types";
 
-interface Props {
-  initialIssues: AuditorReviewIssue[];
-}
+const STATUS = {
+  action_required: { label: "Action Required", tone: "critical", icon: AlertTriangle },
+  pending_clarification: { label: "Awaiting Auditor", tone: "warning", icon: Clock },
+  resolved: { label: "Resolved", tone: "success", icon: CheckCircle2 },
+} as const;
 
-function formatFileSize(bytes: number): string {
-  if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-  if (bytes >= 1024) return `${(bytes / 1024).toFixed(0)} KB`;
-  return `${bytes} B`;
-}
+export default function AuditorIssuesManager({ issues }: { issues: Issue[] }) {
+  const router = useRouter();
+  const params = useSearchParams();
+  const highlight = params.get("issue");
+  const [active, setActive] = useState<Issue | null>(null);
+  const [text, setText] = useState("");
+  const [file, setFile] = useState<File | null>(null);
+  const [busy, setBusy] = useState(false);
+  const rowRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
-export default function AuditorIssuesManager({ initialIssues }: Props) {
-  const { t } = useLanguage();
-  const searchParams = useSearchParams();
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const [issues, setIssues] = useState<AuditorReviewIssue[]>(initialIssues);
-  const [activeIssueId, setActiveIssueId] = useState<string | null>(null);
-
-  // Form states inside modal
-  const [responseText, setResponseText] = useState("");
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
-
-  // When navigated from dashboard (?issue=...), scroll to the card without any highlight or border
   useEffect(() => {
-    const issueParam = searchParams.get("issue");
-    if (issueParam) {
-      setTimeout(() => {
-        const el = document.getElementById(`issue-${issueParam}`);
-        if (el) {
-          el.scrollIntoView({ behavior: "smooth", block: "center" });
-        }
-      }, 100);
-    }
-  }, [searchParams]);
+    if (highlight) rowRefs.current[highlight]?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [highlight]);
 
-  const activeIssue = issues.find((i) => i.id === activeIssueId) || null;
-
-  function openIssueModal(issue: AuditorReviewIssue) {
-    setActiveIssueId(issue.id);
-    setResponseText(issue.response || "");
-    setSelectedFile(null);
-    setSuccessMessage(null);
-  }
-
-  function handleCloseModal() {
-    setActiveIssueId(null);
-    setSelectedFile(null);
-    setSuccessMessage(null);
-    // Remove query param from URL without full reload
-    if (typeof window !== "undefined") {
-      const url = new URL(window.location.href);
-      url.searchParams.delete("issue");
-      window.history.replaceState({}, "", url.pathname);
-    }
-  }
-
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    if (e.target.files && e.target.files[0]) {
-      setSelectedFile(e.target.files[0]);
-    }
-  }
-
-  async function handleSendResponse() {
-    if (!activeIssue) return;
-    if (!responseText.trim() && !selectedFile) return;
-
-    setIsSubmitting(true);
-    setSuccessMessage(null);
-
-    const attachedName = selectedFile ? selectedFile.name : activeIssue.attachedFileName;
-    const attachedSize = selectedFile ? formatFileSize(selectedFile.size) : activeIssue.attachedFileSize;
-
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!active) return;
+    setBusy(true);
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-      const token = typeof window !== "undefined" ? localStorage.getItem("taxease_token") : null;
-      const headers: Record<string, string> = {};
-      if (token) {
-        headers["Authorization"] = `Bearer ${token}`;
-      }
-
-      if (selectedFile) {
-        const formData = new FormData();
-        formData.append("file", selectedFile);
-        formData.append("action", "respond");
-        formData.append("response", responseText.trim());
-        await fetch(`${apiUrl}/api/auditor-review/issues/${activeIssue.id}/respond`, {
-          method: "POST",
-          headers,
-          body: formData,
-        }).catch(() => null);
-      } else {
-        await fetch(`${apiUrl}/api/auditor-review/issues/${activeIssue.id}/respond`, {
-          method: "POST",
-          headers: { ...headers, "Content-Type": "application/json" },
-          body: JSON.stringify({
-            action: "respond",
-            response: responseText.trim(),
-          }),
-        }).catch(() => null);
-      }
-
-      // Update local state
-      setIssues((prev) =>
-        prev.map((i) =>
-          i.id === activeIssue.id
-            ? {
-                ...i,
-                response: responseText.trim() || i.response,
-                attachedFileName: attachedName,
-                attachedFileSize: attachedSize,
-              }
-            : i
-        )
-      );
-
-      setSuccessMessage("Response & document sent to auditor successfully!");
-      setTimeout(() => {
-        handleCloseModal();
-      }, 1400);
-    } catch {
-      setIssues((prev) =>
-        prev.map((i) =>
-          i.id === activeIssue.id
-            ? {
-                ...i,
-                response: responseText.trim() || i.response,
-                attachedFileName: attachedName,
-                attachedFileSize: attachedSize,
-              }
-            : i
-        )
-      );
-      setSuccessMessage("Response recorded successfully!");
-      setTimeout(() => {
-        handleCloseModal();
-      }, 1400);
+      await respondToIssue(active.id, text, file);
+      toast.success("Response sent to your auditor.");
+      setActive(null);
+      setText("");
+      setFile(null);
+      router.refresh();
+    } catch (err) {
+      toast.error(errorMessage(err));
     } finally {
-      setIsSubmitting(false);
+      setBusy(false);
     }
   }
 
   return (
-    <>
-      <Card className="mt-6 p-6">
-        <p className="mb-4 font-semibold text-gray-800">
-          {t("business.auditorReview.issuesTitle")}
-        </p>
-        {issues.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-10 text-center">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 mb-3">
-              <Check className="h-6 w-6" />
-            </div>
-            <p className="text-sm font-semibold text-gray-800">No Auditor Queries or Exceptions</p>
-            <p className="mt-1 text-xs text-gray-500 max-w-md">
-              Your auditor has not raised any exceptions or document clarification requests yet. As your audit review proceeds, any inquiries will appear here.
-            </p>
-          </div>
-        ) : (
-          <div className="divide-y divide-gray-50">
-            {issues.map((issue) => (
+    <Card className="mt-6 p-5">
+      <div className="mb-3 flex items-center justify-between">
+        <p className="font-semibold text-gray-800">Auditor Inquiries & Exceptions</p>
+        <span className="text-xs text-gray-400">{issues.filter((i) => i.status !== "resolved").length} open</span>
+      </div>
+
+      {issues.length === 0 ? (
+        <p className="py-6 text-center text-sm text-gray-400">No issues raised by your auditor.</p>
+      ) : (
+        <div className="divide-y divide-gray-50">
+          {issues.map((issue) => {
+            const s = STATUS[issue.status];
+            const Icon = s.icon;
+            return (
               <div
                 key={issue.id}
-                id={`issue-${issue.id}`}
-                className="flex gap-3 py-5 first:pt-0 last:pb-0"
+                ref={(el) => {
+                  rowRefs.current[issue.id] = el;
+                }}
+                className={`flex items-start gap-3 py-4 ${highlight === issue.id ? "-mx-3 rounded-lg bg-blue-50/60 px-3" : ""}`}
               >
-                <div
-                  className={
-                    issue.status === "action_required"
-                      ? "flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-red-50"
-                      : "flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-50"
-                  }
-                >
-                  <AlertTriangle
-                    className={
-                      issue.status === "action_required"
-                        ? "h-4 w-4 text-status-critical"
-                        : "h-4 w-4 text-status-warning"
-                    }
-                  />
-                </div>
-                <div className="flex-1">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Badge tone={issue.status === "action_required" ? "critical" : "warning"}>
-                        {issue.status === "action_required"
-                          ? t("status.reviewRequired")
-                          : t("common.pending")}
-                      </Badge>
-                      {issue.response && (
-                        <Badge tone="info">{t("status.processed")}</Badge>
-                      )}
-                      <p className="font-semibold text-gray-900">{issue.title}</p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => openIssueModal(issue)}
-                      className="inline-flex items-center gap-1 rounded-lg border border-brand-blue/30 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-brand-blue hover:bg-brand-blue hover:text-white transition-colors cursor-pointer shadow-sm"
-                    >
-                      {t("business.auditorReview.respond")} →
-                    </button>
+                <span className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${issue.severity === "critical" ? "bg-red-50 text-red-600" : "bg-amber-50 text-amber-600"}`}>
+                  <Icon className="h-4 w-4" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="font-medium text-gray-800">{issue.title}</p>
+                    <Badge tone={issue.severity === "critical" ? "critical" : "warning"}>{issue.severity}</Badge>
+                    <Badge tone={s.tone}>{s.label}</Badge>
                   </div>
-                  <p className="mt-2 rounded-lg bg-gray-50 p-3 text-sm text-gray-600">
-                    &ldquo;{issue.comment}&rdquo;
-                  </p>
-                  <p className="mt-2 text-xs text-gray-400">
-                    Source: {issue.source}
-                  </p>
-
-                  {/* Show user response if submitted */}
-                  {issue.response && (
-                    <div className="mt-2.5 rounded-lg border border-blue-100 bg-blue-50/60 p-2.5 text-xs text-brand-blue">
-                      <span className="font-semibold">{t("business.auditorReview.replyToAuditor")}: </span>
-                      {issue.response}
+                  <p className="mt-1 text-sm text-gray-600">{issue.comment}</p>
+                  {issue.source && <p className="mt-1 text-xs text-gray-400">Source: {issue.source}</p>}
+                  {issue.responseText && (
+                    <div className="mt-2 rounded-lg bg-gray-50 p-2.5 text-xs text-gray-700">
+                      <span className="font-semibold">Your response:</span> {issue.responseText}
+                      {issue.attachments.map((a) => (
+                        <a key={a.id} href={`/api/attachments/${a.id}/file`} className="ml-2 inline-flex items-center gap-1 text-brand-blue hover:underline">
+                          <Paperclip className="h-3 w-3" /> {a.name} ({fileSize(a.sizeBytes)})
+                        </a>
+                      ))}
                     </div>
                   )}
-
-                  {/* Show attached file if uploaded */}
-                  {issue.attachedFileName && (
-                    <div className="mt-2 inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 py-1 text-xs text-gray-600">
-                      <FileText className="h-3.5 w-3.5 text-brand-blue shrink-0" />
-                      <span className="font-medium text-gray-800">{issue.attachedFileName}</span>
-                      {issue.attachedFileSize && (
-                        <span className="text-gray-400">({issue.attachedFileSize})</span>
-                      )}
-                    </div>
-                  )}
+                  <p className="mt-1 text-[11px] text-gray-400">Raised {date(issue.createdAt)}{issue.resolvedAt ? ` · Resolved ${date(issue.resolvedAt)}` : ""}</p>
                 </div>
+                {issue.status !== "resolved" && (
+                  <Button variant="secondary" className="px-3 py-1.5 text-xs" onClick={() => { setActive(issue); setText(issue.responseText); }}>
+                    {issue.status === "pending_clarification" ? "Update Response" : "Respond"}
+                  </Button>
+                )}
               </div>
-            ))}
-          </div>
-        )}
-      </Card>
+            );
+          })}
+        </div>
+      )}
 
-      {/* Pop up Issue Modal */}
-      {activeIssue && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <Card className="w-full max-w-lg p-6 shadow-xl max-h-[90vh] overflow-y-auto">
-            {/* Header */}
-            <div className="flex items-start justify-between border-b border-gray-100 pb-3">
+      {active && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <Card className="w-full max-w-lg p-0">
+            <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
               <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <Badge tone={activeIssue.status === "action_required" ? "critical" : "warning"}>
-                    {activeIssue.status === "action_required" ? "Action Required" : "Pending Clarification"}
-                  </Badge>
-                  {activeIssue.response && <Badge tone="info">Responded</Badge>}
-                </div>
-                <h3 className="font-semibold text-gray-900 text-base">{activeIssue.title}</h3>
+                <h2 className="text-base font-bold text-gray-900">{active.title}</h2>
+                <p className="text-xs text-gray-500">{active.comment}</p>
               </div>
-              <button
-                type="button"
-                onClick={handleCloseModal}
-                className="text-gray-400 hover:text-gray-600 p-1 cursor-pointer"
-                aria-label="Close"
-              >
+              <button onClick={() => setActive(null)} className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100">
                 <X className="h-5 w-5" />
               </button>
             </div>
-
-            {/* Auditor Comment Info */}
-            <div className="mt-4">
-              <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">
-                Auditor&apos;s Comment
-              </p>
-              <div className="mt-1.5 rounded-lg border border-gray-100 bg-gray-50 p-3 text-sm text-gray-700">
-                &ldquo;{activeIssue.comment}&rdquo;
-              </div>
-              <p className="mt-1 text-xs text-gray-400">
-                Source: <span className="font-medium text-gray-600">{activeIssue.source}</span>
-              </p>
-            </div>
-
-            {/* Response Area */}
-            <div className="mt-4">
-              <label className="block text-xs font-semibold text-gray-700 mb-1">
-                {t("business.issues.yourResponse")}
-              </label>
+            <form onSubmit={submit} className="space-y-4 p-6">
               <textarea
-                rows={3}
-                value={responseText}
-                onChange={(e) => setResponseText(e.target.value)}
-                placeholder="e.g., Attached supporting invoices for Rs. 300,000 entertainment expenses with client details and business rationale..."
-                className="w-full rounded-lg border border-gray-200 p-3 text-sm focus:border-brand-blue focus:outline-none focus:ring-1 focus:ring-brand-blue"
+                rows={5}
+                required
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                placeholder="Explain the treatment, reference the ledger account or voucher, and attach evidence if requested..."
+                className="w-full rounded-lg border border-gray-300 p-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-brand-blue focus:outline-none focus:ring-1 focus:ring-brand-blue"
               />
-              <p className="mt-1 text-xs text-gray-400">
-                This message will be forwarded directly to your assigned auditor for review.
-              </p>
-            </div>
-
-            {/* Optional Document Upload Feature */}
-            <div className="mt-4">
-              <label className="block text-xs font-semibold text-gray-700 mb-1.5">
-                {t("business.issues.uploadSupport")}{" "}
-                <span className="text-gray-400 font-normal">({t("common.optional")})</span>
+              <label className="flex cursor-pointer items-center gap-2 text-sm text-gray-600">
+                <Paperclip className="h-4 w-4" />
+                <span>{file ? `${file.name} (${fileSize(file.size)})` : "Attach evidence (PDF, XLSX, CSV, image — max 10 MB)"}</span>
+                <input type="file" className="hidden" accept=".pdf,.xlsx,.xls,.csv,.png,.jpg,.jpeg" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
               </label>
-
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".pdf,.xlsx,.xls,.csv,.doc,.docx,.png,.jpg,.jpeg"
-                onChange={handleFileChange}
-                className="hidden"
-              />
-
-              {!selectedFile ? (
-                <div
-                  onClick={() => fileInputRef.current?.click()}
-                  className="flex cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-gray-300 bg-gray-50/50 p-4 text-center transition hover:border-brand-blue hover:bg-blue-50/20"
-                >
-                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-50 text-brand-blue">
-                    <UploadCloud className="h-5 w-5" />
-                  </div>
-                  <p className="mt-1.5 text-xs font-medium text-gray-700">
-                    {t("business.issues.uploadSupport")}
-                  </p>
-                  <p className="text-[11px] text-gray-400">
-                    PDF, Excel, Word, or images up to 10MB
-                  </p>
-                </div>
-              ) : (
-                <div className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 p-3">
-                  <div className="flex items-center gap-2.5 overflow-hidden">
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded bg-blue-100 text-brand-blue">
-                      <FileText className="h-4 w-4" />
-                    </div>
-                    <div className="truncate">
-                      <p className="truncate text-xs font-medium text-gray-800">
-                        {selectedFile.name}
-                      </p>
-                      <p className="text-[11px] text-gray-400">
-                        {formatFileSize(selectedFile.size)}
-                      </p>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedFile(null);
-                      if (fileInputRef.current) fileInputRef.current.value = "";
-                    }}
-                    className="p-1 text-gray-400 hover:text-red-500 cursor-pointer"
-                    title={t("common.remove")}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* Success message */}
-            {successMessage && (
-              <div className="mt-4 flex items-center gap-2 rounded-lg border border-green-100 bg-green-50 p-3 text-xs font-medium text-status-success">
-                <Check className="h-4 w-4 shrink-0" />
-                {successMessage}
+              <div className="flex justify-end gap-2">
+                <Button type="button" variant="secondary" onClick={() => setActive(null)} disabled={busy}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={busy || !text.trim()}>
+                  {busy ? "Sending..." : "Submit Explanation"}
+                </Button>
               </div>
-            )}
-
-            {/* Modal Footer */}
-            <div className="mt-6 flex items-center justify-end gap-3 border-t border-gray-100 pt-4">
-              <Button
-                variant="secondary"
-                onClick={handleCloseModal}
-                disabled={isSubmitting}
-              >
-                {t("common.cancel")}
-              </Button>
-              <Button
-                variant="primary"
-                onClick={handleSendResponse}
-                disabled={isSubmitting || (!responseText.trim() && !selectedFile)}
-              >
-                {isSubmitting
-                  ? t("business.issues.submitting")
-                  : t("business.issues.submitResponse")}
-              </Button>
-            </div>
+            </form>
           </Card>
         </div>
       )}
-    </>
+    </Card>
   );
 }

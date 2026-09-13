@@ -1,8 +1,8 @@
 import AuditorResponsesManager from "@/components/auditor/AuditorResponsesManager";
-import { getAuditorResponsesSummary } from "@/lib/api/auditor";
+import { apiServer } from "@/lib/api/server";
+import type { ResponseRow } from "@/lib/types";
 
 export default async function ResponsesPage() {
-  const data = await getAuditorResponsesSummary();
-
-  return <AuditorResponsesManager initial={data} />;
+  const responses = await apiServer<ResponseRow[]>("/api/auditor/responses");
+  return <AuditorResponsesManager responses={responses} />;
 }

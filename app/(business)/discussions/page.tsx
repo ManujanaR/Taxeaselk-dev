@@ -1,36 +1,20 @@
-import { Suspense } from "react";
+import DiscussionsManager from "@/components/DiscussionsManager";
 import T from "@/components/layout/T";
-import BusinessDiscussionsManager from "@/components/business/BusinessDiscussionsManager";
-import { getBusinessDiscussions } from "@/lib/api/business";
+import { apiServer } from "@/lib/api/server";
+import { getSession } from "@/lib/auth";
+import type { Thread } from "@/lib/types";
 
-export const metadata = {
-  title: "Audit Discussions | TaxEaseLK",
-};
-
-export default async function BusinessDiscussionsPage() {
-  const data = await getBusinessDiscussions();
-
+export default async function DiscussionsPage() {
+  const [session, threads] = await Promise.all([getSession("business"), apiServer<Thread[]>("/api/threads")]);
   return (
     <div>
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">
-            <T k="pages.businessDiscussions.title" />
-          </h1>
-          <p className="mt-1 text-sm text-gray-500">
-            <T k="pages.businessDiscussions.subtitle" />
-          </p>
-        </div>
-      </div>
-
-      <Suspense
-        fallback={
-          <div className="mt-6 h-[640px] w-full animate-pulse rounded-xl bg-gray-100/70" />
-        }
-      >
-        <BusinessDiscussionsManager initialData={data} />
-      </Suspense>
+      <h1 className="text-2xl font-bold text-gray-900">
+        <T k="pages.discussions.title" />
+      </h1>
+      <p className="mb-6 mt-1 text-sm text-gray-500">
+        <T k="pages.discussions.subtitle" />
+      </p>
+      <DiscussionsManager role="business" initialThreads={threads} userId={session.user.id} />
     </div>
   );
 }
-

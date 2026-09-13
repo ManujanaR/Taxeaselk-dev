@@ -6,6 +6,16 @@ from sqlalchemy import (
     Boolean, Date, DateTime, Float, ForeignKey, Index, Integer, String, Text, text,
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+from sqlalchemy.types import TypeDecorator
+
+
+class UTCDateTime(TypeDecorator):
+    """Always hand back tz-aware UTC datetimes (SQLite drops tzinfo; Postgres timestamptz keeps it)."""
+    impl = DateTime(timezone=True)
+    cache_ok = True
+
+    def process_result_value(self, value, dialect):
+        return value.replace(tzinfo=timezone.utc) if value is not None and value.tzinfo is None else value
 
 
 def _uuid() -> str:
@@ -18,7 +28,7 @@ def now() -> datetime:
 
 class Base(DeclarativeBase):
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=now)
 
 
 class User(Base):
@@ -80,9 +90,9 @@ class Engagement(Base):
     tax_year: Mapped[str] = mapped_column(String(20))
     status: Mapped[str] = mapped_column(String(20), default="invited")  # invited|declined|active|under_review|approved|terminated
     message: Mapped[str] = mapped_column(Text, default="")
-    accepted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    submitted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    accepted_at: Mapped[datetime | None] = mapped_column(UTCDateTime)
+    submitted_at: Mapped[datetime | None] = mapped_column(UTCDateTime)
+    approved_at: Mapped[datetime | None] = mapped_column(UTCDateTime)
 
     company: Mapped[Company] = relationship(back_populates="engagements")
     auditor: Mapped[AuditorProfile] = relationship(back_populates="engagements")
@@ -126,7 +136,7 @@ class Document(Base):
     doc_type: Mapped[str] = mapped_column(String(100))
     status: Mapped[str] = mapped_column(String(20), default="uploaded")  # uploaded|verified|review_required
     verified_by: Mapped[str | None] = mapped_column(ForeignKey("users.id"))
-    verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    verified_at: Mapped[datetime | None] = mapped_column(UTCDateTime)
 
     checklist_item: Mapped[ChecklistItem | None] = relationship(back_populates="documents")
 
@@ -142,7 +152,7 @@ class FinancialInputs(Base):
     entertainment_expenses: Mapped[float] = mapped_column(Float, default=0)
     tax_depreciation_allowances: Mapped[float] = mapped_column(Float, default=0)
     source_document_id: Mapped[str | None] = mapped_column(ForeignKey("documents.id", ondelete="SET NULL"))
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now, onupdate=now)
+    updated_at: Mapped[datetime] = mapped_column(UTCDateTime, default=now, onupdate=now)
 
 
 class Issue(Base):
@@ -154,7 +164,7 @@ class Issue(Base):
     severity: Mapped[str] = mapped_column(String(20), default="warning")  # critical|warning
     status: Mapped[str] = mapped_column(String(30), default="action_required")  # action_required|pending_clarification|resolved
     response_text: Mapped[str] = mapped_column(Text, default="")
-    resolved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    resolved_at: Mapped[datetime | None] = mapped_column(UTCDateTime)
 
     engagement: Mapped[Engagement] = relationship(back_populates="issues")
     attachments: Mapped[list["Attachment"]] = relationship(back_populates="issue", cascade="all, delete-orphan")
@@ -208,9 +218,9 @@ class Thread(Base):
     topic: Mapped[str] = mapped_column(String(255))
     category: Mapped[str] = mapped_column(String(100), default="General")
     status: Mapped[str] = mapped_column(String(10), default="open")  # open|closed
-    last_message_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
-    business_read_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    auditor_read_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    last_message_at: Mapped[datetime] = mapped_column(UTCDateTime, default=now)
+    business_read_at: Mapped[datetime | None] = mapped_column(UTCDateTime)
+    auditor_read_at: Mapped[datetime | None] = mapped_column(UTCDateTime)
 
     engagement: Mapped[Engagement] = relationship(back_populates="threads")
     messages: Mapped[list["Message"]] = relationship(back_populates="thread", cascade="all, delete-orphan", order_by="Message.created_at")

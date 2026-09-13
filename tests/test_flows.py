@@ -100,7 +100,7 @@ def test_full_engagement_flow(clients):
     dash = biz.get("/api/dashboard").json()
     assert dash["steps"][1]["progressPercent"] == 100 and dash["auditorStatus"] == "active"
     assert biz.post("/api/handover").status_code == 204
-    assert biz.get("/api/dashboard").json()["steps"][3]["progressPercent"] == 100
+    assert biz.get("/api/dashboard").json()["steps"][2]["progressPercent"] == 100  # stage 3 = handover
     assert biz.get("/api/documents").json()["unsentCount"] == 0
     assert len(aud.get(f"/api/auditor/engagements/{eng_id}").json()["documents"]) == 1
     assert aud.get(f"/api/documents/{doc_id}/file").status_code == 200

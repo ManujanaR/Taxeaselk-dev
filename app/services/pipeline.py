@@ -1,4 +1,6 @@
-"""Five-stage audit handover pipeline, 20% each, 100% once the auditor signs off."""
+"""Five-stage audit handover pipeline, 20% each, 100% once the auditor signs off.
+
+1 documents gathered -> 2 figures entered -> 3 pack handed over -> 4 auditor verifies documents -> 5 inquiries resolved & sign-off"""
 from sqlalchemy.orm import Session, object_session
 
 from app.models import Company, Document, Engagement, FinancialInputs
@@ -6,8 +8,8 @@ from app.models import Company, Document, Engagement, FinancialInputs
 STAGES = [
     ("documents", "Document Gathering", "/documents"),
     ("financials", "Financial Data", "/financials"),
-    ("verification", "Auditor Verification", "/documents"),
     ("handover", "Auditor Handover", "/auditor-review"),
+    ("verification", "Auditor Verification", "/documents"),
     ("signoff", "Auditor Inquiries & Sign-Off", "/auditor-review"),
 ]
 
@@ -28,11 +30,11 @@ def pipeline(company: Company, eng: Engagement | None) -> dict:
 
     s2, r2 = (100, "Figures Entered") if has_inputs else (0, "Awaiting Figures")
 
+    s3, r3 = (100, "Pack Dispatched") if handed_over else (0, "Not Submitted")
+
     sent = [d for d in docs if d.submitted_at]
     verified = sum(d.status == "verified" for d in sent)
-    s3, r3 = (int(verified / len(sent) * 100), f"{verified} / {len(sent)} Verified") if sent else (0, "Pack Not Sent" if docs else "No Documents")
-
-    s4, r4 = (100, "Pack Dispatched") if handed_over else (0, "Not Submitted")
+    s4, r4 = (int(verified / len(sent) * 100), f"{verified} / {len(sent)} Verified") if sent else (0, "Pack Not Sent" if docs else "No Documents")
 
     if approved:
         s5, r5 = 100, "Audit Signed Off"

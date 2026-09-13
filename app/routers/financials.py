@@ -7,7 +7,7 @@ from app.core.deps import current_company, live_engagement
 from app.models import Company, Document, FinancialInputs, now
 from app.schemas.base import CamelModel
 from app.services import extract, pipeline
-from app.services.notify import auditor_user_id, log, notify
+from app.services.notify import auditor_user_id, log, notify, touch
 from app.services.tax_engine import compute
 
 router = APIRouter(prefix="/api", tags=["financials"])
@@ -77,6 +77,9 @@ def put_financials(payload: InputsIn, co: Company = Depends(current_company), db
     fi.tax_year = co.financial_year
     db.add(fi)
     log(db, co.id, co.user_id, "FINANCIALS_UPDATED", "CIT computation inputs updated.")
+    eng = live_engagement(db, co.id)
+    if eng and eng.status != "invited":
+        touch(db, auditor_user_id(eng))
     db.commit()
     db.refresh(fi)
     return _view(co, fi)

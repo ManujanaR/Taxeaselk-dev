@@ -9,7 +9,7 @@ from app.models import AuditorProfile, AuditorReview, Company, Engagement, Issue
 from app.schemas.auth import CompanyOut
 from app.schemas.base import CamelModel
 from app.schemas.shared import AuditorSummary, EngagementOut, IssueOut, ReviewIn, ReviewOut
-from app.services.notify import auditor_user_id, log, notify
+from app.services.notify import auditor_user_id, log, notify, touch
 
 router = APIRouter(prefix="/api", tags=["business"])
 
@@ -44,6 +44,9 @@ def update_company(payload: CompanyIn, co: Company = Depends(current_company), d
     for k, v in payload.model_dump().items():
         setattr(co, k, v)
     log(db, co.id, co.user_id, "COMPANY_UPDATED", "Company profile updated.")
+    eng = live_engagement(db, co.id)
+    if eng:
+        touch(db, auditor_user_id(eng))
     db.commit()
     db.refresh(co)
     return co

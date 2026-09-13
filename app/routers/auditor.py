@@ -13,7 +13,7 @@ from app.models import (
 from app.schemas.auth import AuditorProfileOut, CompanyOut
 from app.schemas.base import CamelModel
 from app.schemas.shared import AuditLogOut, ChecklistItemOut, DocumentOut, EngagementOut, IssueOut, RequestOut
-from app.services.notify import business_user_id, log, notify
+from app.services.notify import business_user_id, log, notify, touch
 
 router = APIRouter(prefix="/api/auditor", tags=["auditor"])
 
@@ -51,6 +51,8 @@ def update_profile(payload: ProfileIn, ap: AuditorProfile = Depends(current_audi
     ap.user.full_name = data.pop("full_name")
     for k, v in data.items():
         setattr(ap, k, v)
+    for eng in db.query(Engagement).filter(Engagement.auditor_id == ap.id, Engagement.status.in_(LIVE_ENGAGEMENT_STATUSES)):
+        touch(db, business_user_id(eng))
     db.commit()
     return profile_out(ap)
 

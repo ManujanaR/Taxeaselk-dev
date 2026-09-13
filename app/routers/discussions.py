@@ -8,7 +8,7 @@ from app.core.database import get_db
 from app.core.deps import get_current_user, live_engagement
 from app.models import Engagement, LIVE_ENGAGEMENT_STATUSES, Message, Thread, User, now
 from app.schemas.base import CamelModel
-from app.services.notify import log, notify
+from app.services.notify import log, notify, touch
 
 router = APIRouter(prefix="/api/threads", tags=["discussions"])
 
@@ -155,5 +155,6 @@ def set_status(thread_id: str, payload: StatusIn, user: User = Depends(get_curre
     if payload.status not in ("open", "closed"):
         raise HTTPException(422, "status must be open or closed")
     t.status = payload.status
+    touch(db, _other_party(t, user))
     db.commit()
     return thread_out(t, user)

@@ -8,7 +8,7 @@ from app.models import AuditorProfile, ChecklistItem, Company, Document, Engagem
 from app.schemas.base import CamelModel
 from app.schemas.shared import ChecklistItemIn, ChecklistItemOut, DocumentOut
 from app.services import files
-from app.services.notify import auditor_user_id, business_user_id, log, notify
+from app.services.notify import auditor_user_id, business_user_id, log, notify, touch
 
 router = APIRouter(prefix="/api", tags=["documents"])
 
@@ -118,6 +118,9 @@ def delete_document(document_id: str, co: Company = Depends(current_company), db
         raise HTTPException(409, "Verified documents cannot be deleted")
     files.delete_stored(doc.stored_name)
     log(db, co.id, co.user_id, "DOCUMENT_DELETED", f"Deleted {doc.name}.", "warning")
+    eng = live_engagement(db, co.id)
+    if eng and eng.status != "invited":
+        touch(db, auditor_user_id(eng))
     db.delete(doc)
     db.commit()
 

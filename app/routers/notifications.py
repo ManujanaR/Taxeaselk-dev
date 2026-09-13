@@ -7,6 +7,7 @@ from app.core.deps import get_current_user, live_engagement
 from app.models import Engagement, LIVE_ENGAGEMENT_STATUSES, Message, Notification, Request, Response, Thread, User
 from app.schemas.base import CamelModel
 from app.schemas.shared import NotificationOut
+from app.services.events import touch
 
 router = APIRouter(prefix="/api", tags=["notifications"])
 
@@ -37,6 +38,7 @@ def mark_read(notification_id: str, user: User = Depends(get_current_user), db: 
     if not n or n.user_id != user.id:
         raise HTTPException(404, "Notification not found")
     n.is_read = True
+    touch(db, user.id)
     db.commit()
 
 
@@ -44,6 +46,7 @@ def mark_read(notification_id: str, user: User = Depends(get_current_user), db: 
 def mark_all_read(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     db.query(Notification).filter(Notification.user_id == user.id, Notification.is_read.is_(False)).update(
         {"is_read": True}, synchronize_session=False)
+    touch(db, user.id)
     db.commit()
 
 

@@ -2,9 +2,9 @@
 
 Run: .venv/bin/pytest -q
 """
-import io
 import os
 import tempfile
+import time
 
 import pytest
 
@@ -15,6 +15,7 @@ os.environ.update({
 
 from fastapi.testclient import TestClient  # noqa: E402
 from app.main import app  # noqa: E402
+from app.services import events  # noqa: E402
 
 PDF = b"%PDF-1.4\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF\n"
 
@@ -54,7 +55,16 @@ def test_full_engagement_flow(clients):
     invites = aud.get("/api/auditor/engagements", params={"status": "invited"}).json()
     assert invites[0]["companyName"] == "ABC (Pvt) Ltd"
     eng_id = invites[0]["id"]
+    biz_user_id = biz.get("/api/auth/me").json()["user"]["id"]
+    q = events.subscribe_queue(biz_user_id)
     assert aud.post(f"/api/auditor/engagements/{eng_id}/accept").json()["status"] == "active"
+    for _ in range(50):  # publish hops onto the event loop thread; give it a moment
+        if q.qsize():
+            break
+        time.sleep(0.02)
+    ev = q.get_nowait()
+    assert ev["type"] == "notification" and ev["notification"]["title"] == "Auditor accepted your invitation"
+    events.unsubscribe_queue(biz_user_id, q)
     assert biz.get("/api/engagement").json()["engagement"]["status"] == "active"
     assert unread(biz) == 1
 

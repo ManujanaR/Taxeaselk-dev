@@ -1,11 +1,17 @@
-"""Every cross-portal event calls notify() for the other party and log() for the audit trail."""
+"""Every cross-portal event calls notify() for the other party and log() for the audit trail.
+
+notify() also queues a realtime event that is pushed to the recipient's open tabs after commit.
+"""
 from sqlalchemy.orm import Session
 
 from app.models import AuditLog, Engagement, Notification
+from app.services.events import queue_event, touch  # noqa: F401  (touch re-exported for routers)
 
 
 def notify(db: Session, user_id: str, title: str, message: str = "", link: str = "", type: str = "info") -> None:
-    db.add(Notification(user_id=user_id, type=type, title=title, message=message, link=link))
+    n = Notification(user_id=user_id, type=type, title=title, message=message, link=link)
+    db.add(n)
+    queue_event(db, user_id, n)
 
 
 def log(db: Session, company_id: str, actor_id: str, event_type: str, details: str, tone: str = "info") -> None:

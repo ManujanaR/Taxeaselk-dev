@@ -32,7 +32,7 @@ Tables are created on first boot. Swagger UI is at `/docs` when `DEBUG=true`.
    GEMINI_API_KEY=<optional; enables /api/financials/extract>
    UPLOAD_DIR=/var/lib/taxease/uploads
    ```
-4. `uvicorn app.main:app --host 127.0.0.1 --port 8000 --workers 2` behind the Next.js app (it proxies `/api/*`). `DEBUG=false` makes the session cookie `Secure`, so the frontend must be served over HTTPS.
+4. `uvicorn app.main:app --host 127.0.0.1 --port 8000` (single worker, see Realtime) behind the Next.js app (it proxies `/api/*`). `DEBUG=false` makes the session cookie `Secure`, so the frontend must be served over HTTPS.
 
 ## Layout
 
@@ -47,5 +47,9 @@ app/
                      extract (Gemini), notify (notifications + audit log)
 tests/test_flows.py  end-to-end flow test
 ```
+
+Realtime: `GET /api/events` is a Server-Sent Events stream per signed-in tab. `notify()`/`touch()` queue events on the
+SQLAlchemy session and `services/events.py` publishes them after commit. The broker is in-process, so run **one**
+uvicorn worker; swap `publish()`/`subscribe()` for Redis pub/sub or Postgres LISTEN/NOTIFY to scale out.
 
 Auth: `POST /api/auth/login` sets an httpOnly `taxease_session` JWT cookie; every other route requires it and checks the role. Company/auditor identity always comes from the cookie, never from request parameters.

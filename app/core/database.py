@@ -16,7 +16,17 @@ if is_sqlite:
         conn.execute("PRAGMA foreign_keys=ON")
         conn.execute("PRAGMA journal_mode=WAL")
 
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine, expire_on_commit=False)
+
+
+def _register_realtime_hooks():
+    from app.services import events  # imported lazily: events -> models/schemas, never back to database
+
+    event.listens_for(SessionLocal, "after_commit")(events.flush_after_commit)
+    event.listens_for(SessionLocal, "after_rollback")(events.discard_after_rollback)
+
+
+_register_realtime_hooks()
 
 
 def get_db():

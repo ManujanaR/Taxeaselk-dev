@@ -1,3 +1,4 @@
+import asyncio
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -8,10 +9,12 @@ from app.core.config import settings
 from app.core.database import engine
 from app.models import Base
 from app.routers import ROUTERS
+from app.services import events
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
+    events.loop = asyncio.get_running_loop()
     settings.UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
     Base.metadata.create_all(bind=engine)
     yield

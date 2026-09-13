@@ -3,7 +3,7 @@ from datetime import date
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import func
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, object_session
 
 from app.core.database import get_db
 from app.core.deps import current_auditor, engagement_for_auditor
@@ -65,6 +65,8 @@ class EngagementRow(EngagementOut):
     warnings_count: int
     open_requests: int
     progress_percent: int
+    documents_count: int
+    verified_count: int
 
 
 def progress_of(eng: Engagement) -> int:
@@ -73,7 +75,9 @@ def progress_of(eng: Engagement) -> int:
 
 
 def row(eng: Engagement) -> EngagementRow:
+    from app.models import Document
     open_issues = [i for i in eng.issues if i.status != "resolved"]
+    docs = object_session(eng).query(Document.status).filter(Document.company_id == eng.company_id).all()
     return EngagementRow(
         **EngagementOut.model_validate(eng).model_dump(),
         company_name=eng.company.company_name, tin_number=eng.company.tin_number,
@@ -81,7 +85,7 @@ def row(eng: Engagement) -> EngagementRow:
         critical_count=sum(i.severity == "critical" for i in open_issues),
         warnings_count=sum(i.severity == "warning" for i in open_issues),
         open_requests=sum(r.status != "resolved" for r in eng.requests),
-        progress_percent=progress_of(eng),
+        progress_percent=progress_of(eng), documents_count=len(docs), verified_count=sum(d.status == "verified" for d in docs),
     )
 
 

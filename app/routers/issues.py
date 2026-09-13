@@ -152,6 +152,16 @@ def create_request(engagement_id: str, payload: RequestIn, ap: AuditorProfile = 
     return req
 
 
+class RequestRow(RequestOut):
+    company_name: str
+
+
+@router.get("/auditor/requests", response_model=list[RequestRow])
+def list_auditor_requests(ap: AuditorProfile = Depends(current_auditor), db: Session = Depends(get_db)):
+    rows = db.query(Request).join(Engagement).filter(Engagement.auditor_id == ap.id).order_by(Request.created_at.desc()).all()
+    return [RequestRow(**RequestOut.model_validate(r).model_dump(), company_name=r.engagement.company.company_name) for r in rows]
+
+
 def _auditor_request(db: Session, ap: AuditorProfile, request_id: str) -> Request:
     req = db.get(Request, request_id)
     if not req or req.engagement.auditor_id != ap.id:

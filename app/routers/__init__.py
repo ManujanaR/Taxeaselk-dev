@@ -1,1 +1,3 @@
-"""API route handlers package"""
+from app.routers.auth import router as auth
+
+ROUTERS = [auth]

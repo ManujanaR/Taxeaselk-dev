@@ -8,11 +8,11 @@ from sqlalchemy.orm import Session, object_session
 from app.core.database import get_db
 from app.core.deps import current_auditor, engagement_for_auditor
 from app.models import (
-    AuditLog, AuditorProfile, AuditorReview, Engagement, Issue, LIVE_ENGAGEMENT_STATUSES, Request, now,
+    AuditLog, AuditorProfile, AuditorReview, Engagement, LIVE_ENGAGEMENT_STATUSES, Request, now,
 )
 from app.schemas.auth import AuditorProfileOut, CompanyOut
 from app.schemas.base import CamelModel
-from app.schemas.shared import AuditLogOut, ChecklistItemOut, DocumentOut, EngagementOut, IssueOut, RequestOut
+from app.schemas.shared import AuditLogOut, ChecklistItemOut, DocumentOut, EngagementOut, RequestOut
 from app.services.notify import business_user_id, log, notify, touch
 
 router = APIRouter(prefix="/api/auditor", tags=["auditor"])
@@ -63,9 +63,9 @@ class EngagementRow(EngagementOut):
     company_name: str
     tin_number: str
     financial_year: str
-    critical_count: int
-    warnings_count: int
     open_requests: int
+    high_priority_open: int
+    needs_review: int
     progress_percent: int
     documents_count: int
     verified_count: int
@@ -78,15 +78,14 @@ def progress_of(eng: Engagement) -> int:
 
 def row(eng: Engagement) -> EngagementRow:
     from app.models import Document
-    open_issues = [i for i in eng.issues if i.status != "resolved"]
+    open_reqs = [r for r in eng.requests if r.status != "resolved"]
     docs = object_session(eng).query(Document.status).filter(Document.company_id == eng.company_id, Document.submitted_at.isnot(None)).all()
     return EngagementRow(
         **EngagementOut.model_validate(eng).model_dump(),
         company_name=eng.company.company_name, tin_number=eng.company.tin_number,
         financial_year=eng.company.financial_year,
-        critical_count=sum(i.severity == "critical" for i in open_issues),
-        warnings_count=sum(i.severity == "warning" for i in open_issues),
-        open_requests=sum(r.status != "resolved" for r in eng.requests),
+        open_requests=len(open_reqs), high_priority_open=sum(r.priority == "HIGH" for r in open_reqs),
+        needs_review=sum(r.status == "responded" for r in open_reqs),
         progress_percent=progress_of(eng), documents_count=len(docs), verified_count=sum(d.status == "verified" for d in docs),
     )
 
@@ -103,7 +102,6 @@ class EngagementDetail(CamelModel):
     company: CompanyOut
     documents: list[DocumentOut]
     checklist: list[ChecklistItemOut]
-    issues: list[IssueOut]
     requests: list[RequestOut]
 
 
@@ -112,7 +110,7 @@ def engagement_detail(engagement_id: str, ap: AuditorProfile = Depends(current_a
     from app.routers.documents import company_documents, checklist_out  # avoid circular import at module load
     eng = engagement_for_auditor(engagement_id, ap, db)
     return EngagementDetail(engagement=row(eng), company=eng.company, documents=company_documents(db, eng.company_id, submitted_only=True),
-                            checklist=checklist_out(eng, submitted_only=True), issues=eng.issues, requests=eng.requests)
+                            checklist=checklist_out(eng, submitted_only=True), requests=eng.requests)
 
 
 def _transition(eng: Engagement, from_statuses: tuple, to: str):
@@ -147,8 +145,8 @@ def decline(engagement_id: str, ap: AuditorProfile = Depends(current_auditor), d
 @router.post("/engagements/{engagement_id}/approve", response_model=EngagementRow)
 def approve(engagement_id: str, ap: AuditorProfile = Depends(current_auditor), db: Session = Depends(get_db)):
     eng = engagement_for_auditor(engagement_id, ap, db)
-    if any(i.status != "resolved" for i in eng.issues) or any(r.status != "resolved" for r in eng.requests):
-        raise HTTPException(409, "Resolve all open issues and requests before signing off.")
+    if any(r.status != "resolved" for r in eng.requests):
+        raise HTTPException(409, "Resolve all open requests before signing off.")
     _transition(eng, ("under_review",), "approved")
     eng.approved_at = now()
     notify(db, business_user_id(eng), "Audit signed off",
@@ -179,7 +177,7 @@ class Workload(CamelModel):
 class DashboardOut(CamelModel):
     companies_assigned: int
     pending_reviews: int
-    critical_issues: int
+    high_priority_open: int
     completed_this_period: int
     priority_reviews: list[PriorityReview]
     workload: Workload
@@ -199,14 +197,16 @@ def dashboard(ap: AuditorProfile = Depends(current_auditor), db: Session = Depen
     live = [e for e in engs if e.status in ("active", "under_review")]
     priority = []
     for e in sorted(live, key=lambda e: (e.status != "under_review", e.created_at)):
-        open_issues = [i for i in e.issues if i.status != "resolved"]
         open_reqs = [r for r in e.requests if r.status != "resolved"]
-        if any(i.severity == "critical" for i in open_issues):
-            tag, detail = "CRITICAL", f"{sum(i.severity == 'critical' for i in open_issues)} critical issue(s) open"
-        elif e.status == "under_review" and not open_issues and not open_reqs:
-            tag, detail = "READY", "Handover pack received, no open items — ready to sign off"
-        elif open_issues or open_reqs:
-            tag, detail = "ATTENTION", f"Awaiting client response on {len(open_issues) + len(open_reqs)} item(s)"
+        needs_review = [r for r in open_reqs if r.status == "responded"]
+        if needs_review:
+            tag, detail = "CRITICAL" if any(r.priority == "HIGH" for r in needs_review) else "ATTENTION", f"{len(needs_review)} answer(s) waiting for your review"
+        elif any(r.priority == "HIGH" for r in open_reqs):
+            tag, detail = "CRITICAL", f"{sum(r.priority == 'HIGH' for r in open_reqs)} high-priority request(s) open"
+        elif e.status == "under_review" and not open_reqs:
+            tag, detail = "READY", "Handover pack received, no open requests — ready to sign off"
+        elif open_reqs:
+            tag, detail = "ATTENTION", f"Waiting on client for {len(open_reqs)} request(s)"
         else:
             tag, detail = "ACTIVE", "Awaiting handover pack from client"
         due = min((r.due_date for r in open_reqs if r.due_date), default=None)
@@ -217,7 +217,7 @@ def dashboard(ap: AuditorProfile = Depends(current_auditor), db: Session = Depen
                 if company_ids else [])
     return DashboardOut(
         companies_assigned=len(live), pending_reviews=len(by("under_review")),
-        critical_issues=sum(1 for e in live for i in e.issues if i.severity == "critical" and i.status != "resolved"),
+        high_priority_open=sum(1 for e in live for r in e.requests if r.priority == "HIGH" and r.status != "resolved"),
         completed_this_period=len(by("approved")), priority_reviews=priority[:6],
         workload=Workload(invited=len(by("invited")), active=len(by("active")), under_review=len(by("under_review")), approved=len(by("approved"))),
         recent_activity=[audit_log_out(a) for a in activity],

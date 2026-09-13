@@ -97,7 +97,6 @@ class Engagement(Base):
     company: Mapped[Company] = relationship(back_populates="engagements")
     auditor: Mapped[AuditorProfile] = relationship(back_populates="engagements")
     checklist_items: Mapped[list["ChecklistItem"]] = relationship(back_populates="engagement", cascade="all, delete-orphan", order_by="ChecklistItem.order_index")
-    issues: Mapped[list["Issue"]] = relationship(back_populates="engagement", cascade="all, delete-orphan", order_by="Issue.created_at")
     requests: Mapped[list["Request"]] = relationship(back_populates="engagement", cascade="all, delete-orphan", order_by="Request.created_at")
     threads: Mapped[list["Thread"]] = relationship(back_populates="engagement", cascade="all, delete-orphan")
     review: Mapped["AuditorReview | None"] = relationship(back_populates="engagement", uselist=False)
@@ -156,21 +155,6 @@ class FinancialInputs(Base):
     updated_at: Mapped[datetime] = mapped_column(UTCDateTime, default=now, onupdate=now)
 
 
-class Issue(Base):
-    __tablename__ = "issues"
-    engagement_id: Mapped[str] = mapped_column(ForeignKey("engagements.id", ondelete="CASCADE"), index=True)
-    title: Mapped[str] = mapped_column(String(255))
-    comment: Mapped[str] = mapped_column(Text, default="")
-    source: Mapped[str] = mapped_column(String(255), default="")
-    severity: Mapped[str] = mapped_column(String(20), default="warning")  # critical|warning
-    status: Mapped[str] = mapped_column(String(30), default="action_required")  # action_required|pending_clarification|resolved
-    response_text: Mapped[str] = mapped_column(Text, default="")
-    resolved_at: Mapped[datetime | None] = mapped_column(UTCDateTime)
-
-    engagement: Mapped[Engagement] = relationship(back_populates="issues")
-    attachments: Mapped[list["Attachment"]] = relationship(back_populates="issue", cascade="all, delete-orphan")
-
-
 class Request(Base):
     __tablename__ = "requests"
     engagement_id: Mapped[str] = mapped_column(ForeignKey("engagements.id", ondelete="CASCADE"), index=True)
@@ -202,14 +186,12 @@ class Attachment(Base):
     __tablename__ = "attachments"
     company_id: Mapped[str] = mapped_column(ForeignKey("companies.id", ondelete="CASCADE"), index=True)
     uploaded_by: Mapped[str] = mapped_column(ForeignKey("users.id"))
-    issue_id: Mapped[str | None] = mapped_column(ForeignKey("issues.id", ondelete="CASCADE"))
     response_id: Mapped[str | None] = mapped_column(ForeignKey("responses.id", ondelete="CASCADE"))
     original_name: Mapped[str] = mapped_column(String(255))
     stored_name: Mapped[str] = mapped_column(String(64))
     size_bytes: Mapped[int] = mapped_column(Integer)
     content_type: Mapped[str] = mapped_column(String(100))
 
-    issue: Mapped[Issue | None] = relationship(back_populates="attachments")
     response: Mapped[Response | None] = relationship(back_populates="attachments")
 
 

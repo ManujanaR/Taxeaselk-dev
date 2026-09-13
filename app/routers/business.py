@@ -5,10 +5,10 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.deps import current_company, live_engagement
-from app.models import AuditorProfile, AuditorReview, Company, Engagement, Issue, User, now
+from app.models import AuditorProfile, AuditorReview, Company, Engagement, User, now
 from app.schemas.auth import CompanyOut
 from app.schemas.base import CamelModel
-from app.schemas.shared import AuditorSummary, EngagementOut, IssueOut, ReviewIn, ReviewOut
+from app.schemas.shared import AuditorSummary, EngagementOut, ReviewIn, ReviewOut
 from app.services.notify import auditor_user_id, log, notify, touch
 
 router = APIRouter(prefix="/api", tags=["business"])
@@ -57,11 +57,9 @@ def update_company(payload: CompanyIn, co: Company = Depends(current_company), d
 class EngagementView(CamelModel):
     engagement: EngagementOut | None
     auditor: AuditorSummary | None
-    issues: list[IssueOut]
-    approved_count: int
-    warnings_count: int
-    critical_count: int
-    pending_count: int
+    open_requests: int
+    needs_review_count: int
+    resolved_count: int
     review: ReviewOut | None
 
 
@@ -89,15 +87,13 @@ def current_or_last_engagement(db: Session, company_id: str) -> Engagement | Non
 def get_engagement(co: Company = Depends(current_company), db: Session = Depends(get_db)):
     eng = current_or_last_engagement(db, co.id)
     if not eng:
-        return EngagementView(engagement=None, auditor=None, issues=[], approved_count=0, warnings_count=0,
-                              critical_count=0, pending_count=0, review=None)
-    issues = eng.issues
+        return EngagementView(engagement=None, auditor=None, open_requests=0, needs_review_count=0, resolved_count=0, review=None)
+    reqs = eng.requests
     return EngagementView(
-        engagement=eng, auditor=auditor_summary(db, eng.auditor), issues=issues,
-        approved_count=sum(i.status == "resolved" for i in issues),
-        warnings_count=sum(i.severity == "warning" and i.status != "resolved" for i in issues),
-        critical_count=sum(i.severity == "critical" and i.status != "resolved" for i in issues),
-        pending_count=sum(i.status == "pending_clarification" for i in issues),
+        engagement=eng, auditor=auditor_summary(db, eng.auditor),
+        open_requests=sum(r.status in ("pending", "revision_requested") for r in reqs),
+        needs_review_count=sum(r.status == "responded" for r in reqs),
+        resolved_count=sum(r.status == "resolved" for r in reqs),
         review=eng.review,
     )
 

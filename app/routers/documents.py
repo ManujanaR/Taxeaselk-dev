@@ -113,7 +113,7 @@ async def upload_document(file: UploadFile = File(...), doc_type: str = Form("Ge
     log(db, co.id, co.user_id, "DOCUMENT_UPLOADED", f"Uploaded {file.filename} ({doc_type}).", "success")
     if pack_sent:
         notify(db, auditor_user_id(eng), "Client uploaded a document", f"{co.company_name} uploaded {file.filename}.",
-               f"/auditor-documents?engagementId={eng.id}")
+               f"/companies/{eng.id}?tab=documents")
     db.commit()
     db.refresh(doc)
     return doc

@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.deps import get_current_user, live_engagement
-from app.models import Engagement, LIVE_ENGAGEMENT_STATUSES, Message, Notification, Request, Response, Thread, User
+from app.models import Engagement, LIVE_ENGAGEMENT_STATUSES, Message, Notification, Request, Thread, User
 from app.schemas.base import CamelModel
 from app.schemas.shared import NotificationOut
 from app.services.events import touch
@@ -18,8 +18,7 @@ class NotificationsOut(CamelModel):
 
 
 class BadgesOut(CamelModel):
-    requests: int = 0
-    responses: int = 0
+    requests: int = 0  # business: waiting on you; auditor: answers to review
     threads: int = 0
 
 
@@ -72,6 +71,5 @@ def nav_badges(user: User = Depends(get_current_user), db: Session = Depends(get
         return BadgesOut(requests=pending, threads=unread_thread_count(db, user, ids))
     ids = [e.id for e in db.query(Engagement.id).filter(
         Engagement.auditor_id == user.auditor_profile.id, Engagement.status.in_(LIVE_ENGAGEMENT_STATUSES))]
-    unreviewed = (db.query(Response).join(Request).filter(Request.engagement_id.in_(ids), Response.status == "unreviewed").count()
-                  if ids else 0)
-    return BadgesOut(responses=unreviewed, threads=unread_thread_count(db, user, ids))
+    to_review = db.query(Request).filter(Request.engagement_id.in_(ids), Request.status == "responded").count() if ids else 0
+    return BadgesOut(requests=to_review, threads=unread_thread_count(db, user, ids))

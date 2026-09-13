@@ -109,32 +109,28 @@ def test_full_engagement_flow(clients):
     # after handover, new uploads reach the auditor immediately
     assert biz.post("/api/documents", files={"file": ("tb.csv", b"a,b\n", "text/csv")}).json()["submittedAt"] is not None
 
-    # issue -> respond with file -> resolve
-    r = aud.post(f"/api/auditor/engagements/{eng_id}/issues", json={"title": "Entertainment add-back", "comment": "Sec 11(1)(c)", "severity": "critical"})
-    issue_id = r.json()["id"]
-    assert biz.get("/api/dashboard").json()["attentionItems"][0]["severity"] == "critical"
-    r = biz.post(f"/api/issues/{issue_id}/respond", data={"responseText": "Vouchers attached"}, files={"file": ("v.pdf", PDF, "application/pdf")})
-    assert r.status_code == 200 and r.json()["status"] == "pending_clarification" and len(r.json()["attachments"]) == 1
-    att_id = r.json()["attachments"][0]["id"]
-    assert aud.get(f"/api/attachments/{att_id}/file").status_code == 200
-    assert aud.post(f"/api/auditor/engagements/{eng_id}/approve").status_code == 409  # open issue blocks sign-off
-    assert aud.post(f"/api/auditor/issues/{issue_id}/resolve").json()["status"] == "resolved"
-
-    # RFI -> respond with 2 files -> revision -> respond again -> resolve
-    r = aud.post(f"/api/auditor/engagements/{eng_id}/requests", json={"title": "Bank confirmations", "priority": "HIGH", "dueDate": "2026-10-01"})
+    # request (HIGH) -> business answers with files -> auditor sends back -> answers again -> resolve
+    r = aud.post(f"/api/auditor/engagements/{eng_id}/requests", json={"title": "Entertainment add-back", "description": "Sec 11(1)(c)", "priority": "HIGH"})
+    assert r.status_code == 201 and r.json()["referenceCode"] == "REQ-2025-001" and r.json()["companyName"] == "ABC (Pvt) Ltd"
     req_id = r.json()["id"]
-    assert r.json()["referenceCode"] == "REQ-2025-001"
-    assert aud.post(f"/api/auditor/requests/{req_id}/remind").status_code == 204
+    dash = biz.get("/api/dashboard").json()
+    assert dash["attentionItems"][0]["severity"] == "critical" and dash["attentionItems"][0]["link"] == f"/auditor-review?request={req_id}"
     assert biz.get("/api/nav/badges").json()["requests"] == 1
+    assert aud.post(f"/api/auditor/requests/{req_id}/resolve").status_code == 409  # nothing to review yet
+    assert aud.post(f"/api/auditor/requests/{req_id}/remind").status_code == 204
     r = biz.post(f"/api/requests/{req_id}/respond", data={"note": "See attached"},
                  files=[("attachments", ("a.pdf", PDF, "application/pdf")), ("attachments", ("b.csv", b"a,b\n1,2\n", "text/csv"))])
     assert r.status_code == 201 and len(r.json()["attachments"]) == 2
-    resp_id = r.json()["id"]
-    assert aud.get("/api/nav/badges").json()["responses"] == 1
-    assert aud.post(f"/api/auditor/responses/{resp_id}/revision", json={"note": "Need VAT number on invoice"}).json()["status"] == "revision_requested"
-    assert biz.get("/api/requests").json()[0]["status"] == "revision_requested"
+    att_id = r.json()["attachments"][0]["id"]
+    assert aud.get(f"/api/attachments/{att_id}/file").status_code == 200
+    assert aud.get("/api/nav/badges").json()["requests"] == 1
+    assert aud.get("/api/auditor/requests").json()[0]["response"]["note"] == "See attached"
+    assert aud.post(f"/api/auditor/engagements/{eng_id}/approve").status_code == 409  # open request blocks sign-off
+    assert aud.post(f"/api/auditor/requests/{req_id}/revision", json={"note": "Need VAT number on invoice"}).json()["status"] == "revision_requested"
+    assert biz.get("/api/requests").json()[0]["response"]["revisionNote"] == "Need VAT number on invoice"
     assert biz.post(f"/api/requests/{req_id}/respond", data={"note": "Updated"}).status_code == 201
-    assert aud.post(f"/api/auditor/responses/{resp_id}/resolve").json()["status"] == "resolved"
+    assert aud.post(f"/api/auditor/requests/{req_id}/resolve").json()["status"] == "resolved"
+    assert biz.get("/api/dashboard").json()["attentionItems"] == []
 
     # discussions
     r = biz.post("/api/threads", json={"topic": "Fixed asset classification", "category": "Fixed Assets", "text": "Is the laptop capex?"})

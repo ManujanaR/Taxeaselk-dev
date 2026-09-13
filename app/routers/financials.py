@@ -151,15 +151,12 @@ def dashboard(co: Company = Depends(current_company), db: Session = Depends(get_
     required = [c for c in eng.checklist_items if c.required] if eng else []
     items: list[AttentionItem] = []
     if eng:
-        for i in eng.issues:
-            if i.status == "action_required":
-                items.append(AttentionItem(id=i.id, severity=i.severity, title=i.title, description=i.comment, link=f"/auditor-review?issue={i.id}"))
         for r in eng.requests:
             if r.status in ("pending", "revision_requested"):
-                items.append(AttentionItem(id=r.id, severity="warning" if r.priority != "HIGH" else "critical",
+                items.append(AttentionItem(id=r.id, severity="critical" if r.priority == "HIGH" else "warning",
                                            title=f"{r.reference_code}: {r.title}",
-                                           description=r.response.revision_note if r.status == "revision_requested" and r.response else r.description,
-                                           link="/auditor-review"))
+                                           description=f"Revision requested: {r.response.revision_note}" if r.status == "revision_requested" and r.response else r.description,
+                                           link=f"/auditor-review?request={r.id}"))
     for d in docs:
         if d.status == "review_required":
             items.append(AttentionItem(id=d.id, severity="warning", title=f"Document flagged: {d.name}",
@@ -186,6 +183,6 @@ def handover(co: Company = Depends(current_company), db: Session = Depends(get_d
     sent = db.query(Document).filter(Document.company_id == co.id, Document.submitted_at.is_(None)).update(
         {"submitted_at": now()}, synchronize_session=False)
     notify(db, auditor_user_id(eng), "Handover pack submitted", f"{co.company_name} submitted their audit pack for {eng.tax_year} ({sent} document(s)).",
-           f"/companies?engagementId={eng.id}", "success")
+           f"/companies/{eng.id}?tab=documents", "success")
     log(db, co.id, co.user_id, "HANDOVER_SUBMITTED", "Audit handover pack submitted to auditor.", "success")
     db.commit()

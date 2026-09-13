@@ -73,20 +73,6 @@ class AttachmentOut(CamelModel):
     content_type: str
 
 
-class IssueOut(CamelModel):
-    id: str
-    engagement_id: str
-    title: str
-    comment: str
-    source: str
-    severity: str
-    status: str
-    response_text: str
-    created_at: datetime
-    resolved_at: datetime | None
-    attachments: list[AttachmentOut] = []
-
-
 class ResponseOut(CamelModel):
     id: str
     request_id: str

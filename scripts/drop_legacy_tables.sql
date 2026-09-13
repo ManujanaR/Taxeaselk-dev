@@ -5,6 +5,10 @@
 --
 -- Safe to run on an empty database: every statement is IF EXISTS.
 
+-- 2026-09-14: issues were merged into requests
+DROP TABLE IF EXISTS issues CASCADE;
+ALTER TABLE IF EXISTS attachments DROP COLUMN IF EXISTS issue_id;
+
 DROP TABLE IF EXISTS
   auditor_settings,
   audit_logs,

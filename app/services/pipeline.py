@@ -39,10 +39,10 @@ def pipeline(company: Company, eng: Engagement | None) -> dict:
     if approved:
         s5, r5 = 100, "Audit Signed Off"
     elif eng and eng.status == "under_review":
-        total = len(eng.issues) + len(eng.requests)
-        done = sum(i.status == "resolved" for i in eng.issues) + sum(r.status == "resolved" for r in eng.requests)
+        total = len(eng.requests)
+        done = sum(r.status == "resolved" for r in eng.requests)
         s5 = int(done / total * 90) if total else 90  # 90 until the auditor signs off
-        r5 = f"{total - done} Pending Inquiries" if total - done else "Awaiting Sign-Off"
+        r5 = f"{total - done} Open Request(s)" if total - done else "Awaiting Sign-Off"
     else:
         s5, r5 = 0, "Not Started"
 

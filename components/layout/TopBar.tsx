@@ -1,6 +1,6 @@
 "use client";
 
-import { HelpCircle, Search } from "lucide-react";
+import { HelpCircle } from "lucide-react";
 import { ReactNode } from "react";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import LanguageToggle from "./LanguageToggle";
@@ -15,8 +15,8 @@ interface TopBarProps {
   userInitials: string;
   displayName: string;
   email: string;
+  userId: string;
   settingsHref: string;
-  showSearch?: boolean;
   extraContent?: ReactNode;
 }
 
@@ -26,8 +26,8 @@ export default function TopBar({
   userInitials,
   displayName,
   email,
+  userId,
   settingsHref,
-  showSearch = true,
   extraContent,
 }: TopBarProps) {
   const { t } = useLanguage();
@@ -42,16 +42,6 @@ export default function TopBar({
       <div className="flex items-center gap-4">
         {extraContent}
 
-        {showSearch && (
-          <div className="relative hidden md:block">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-            <input
-              type="search"
-              placeholder={t("common.search")}
-              className="w-56 rounded-lg border border-gray-200 bg-gray-50 py-2 pl-9 pr-3 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-brand-blue"
-            />
-          </div>
-        )}
 
         <NotificationBell />
 
@@ -70,6 +60,7 @@ export default function TopBar({
           displayName={displayName}
           email={email}
           userInitials={userInitials}
+          userId={userId}
           roleLabel={roleLabel}
           settingsHref={settingsHref}
         />

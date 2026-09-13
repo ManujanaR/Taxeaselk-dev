@@ -1,16 +1,8 @@
-import {
-  LayoutGrid,
-  Building2,
-  FileText,
-  FolderDown,
-  Inbox,
-  MessagesSquare,
-  Settings as SettingsIcon,
-} from "lucide-react";
+import { LayoutGrid, Building2, FileText, FolderDown, Inbox, MessagesSquare, ScrollText, Settings as SettingsIcon } from "lucide-react";
 import Sidebar, { NavItem } from "@/components/layout/Sidebar";
 import TopBar from "@/components/layout/TopBar";
 import AuditorRankRating from "@/components/layout/AuditorRankRating";
-import T from "@/components/layout/T";
+import { formattedUserId, getSession, initials } from "@/lib/auth";
 
 const navItems: NavItem[] = [
   { href: "/auditor-dashboard", labelKey: "sidebar.dashboard", icon: <LayoutGrid className="h-4 w-4" /> },
@@ -19,47 +11,29 @@ const navItems: NavItem[] = [
   { href: "/responses", labelKey: "sidebar.responses", icon: <FolderDown className="h-4 w-4" /> },
   { href: "/requests", labelKey: "sidebar.requests", icon: <Inbox className="h-4 w-4" /> },
   { href: "/auditor-discussions", labelKey: "sidebar.discussions", icon: <MessagesSquare className="h-4 w-4" /> },
+  { href: "/audit-log", labelKey: "sidebar.auditLog", icon: <ScrollText className="h-4 w-4" /> },
   { href: "/auditor-settings", labelKey: "sidebar.settings", icon: <SettingsIcon className="h-4 w-4" /> },
 ];
 
-// Shared shell for every page under the Auditor portal. Mirrors
-// (business)/layout.tsx structurally — same Sidebar/TopBar components,
-// different nav items and top bar content (all-companies picker instead
-// of a single company).
-export default function AuditorLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+// Shared shell for every page under the Auditor portal.
+export default async function AuditorLayout({ children }: { children: React.ReactNode }) {
+  const session = await getSession("auditor");
+  const { user, auditorProfile } = session;
+
   return (
     <div className="flex h-screen bg-gray-50">
-      <Sidebar
-        workspaceLabelKey="sidebar.auditorWorkspace"
-        navItems={navItems}
-        userName="Professional Auditor"
-        userEmail="auditor@example.com"
-        userInitials="PA"
-        settingsHref="/auditor-settings"
-        badgeHrefs={["/requests", "/responses", "/auditor-discussions"]}
-      />
+      <Sidebar workspaceLabelKey="sidebar.auditorWorkspace" navItems={navItems} settingsHref="/auditor-settings" badgeHrefs={["/requests", "/responses", "/auditor-discussions"]} />
       <div className="flex min-w-0 flex-1 flex-col">
         <TopBar
           roleLabel="Auditor"
-          userInitials="PA"
-          displayName="Professional Auditor"
-          email="auditor@example.com"
+          userInitials={initials(user.fullName)}
+          displayName={user.fullName}
+          email={user.email}
+          userId={formattedUserId(session)}
           settingsHref="/auditor-settings"
-          showSearch={false}
           extraContent={<AuditorRankRating />}
           leftContent={
-            <>
-              <span className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-600">
-                <T k="common.allCompanies" />
-              </span>
-              <span className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-600">
-                2025/26
-              </span>
-            </>
+            <span className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-600">{auditorProfile?.firmName}</span>
           }
         />
         <main className="flex-1 overflow-y-auto p-8">{children}</main>

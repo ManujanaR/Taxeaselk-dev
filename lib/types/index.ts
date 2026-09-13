@@ -4,6 +4,49 @@
 
 export type Role = "business" | "auditor";
 
+// --- Session (GET /api/auth/me) ---
+export interface User {
+  id: string;
+  email: string;
+  role: Role;
+  fullName: string;
+  createdAt: string;
+}
+
+export interface Company {
+  id: string;
+  companyName: string;
+  tradingName: string;
+  registrationNumber: string;
+  tinNumber: string;
+  vatNumber: string;
+  isSvatRegistered: boolean;
+  svatNumber: string;
+  citTaxRateCategory: "standard_30" | "sme_14";
+  financialYear: string;
+  contactEmail: string;
+  contactPhone: string;
+  registeredAddress: string;
+  industrySector: string;
+}
+
+export interface AuditorProfile {
+  id: string;
+  firmName: string;
+  firmRegNo: string;
+  licenseNumber: string;
+  icaslMemberNo: string;
+  irdPractitionerNo: string;
+  phone: string;
+  officeAddress: string;
+}
+
+export interface Session {
+  user: User;
+  company: Company | null;
+  auditorProfile: AuditorProfile | null;
+}
+
 export interface DashboardStep {
   label: string;
   state: "done" | "warning" | "pending" | "in_progress";

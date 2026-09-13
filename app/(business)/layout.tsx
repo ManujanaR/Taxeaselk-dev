@@ -1,15 +1,8 @@
-import {
-  LayoutGrid,
-  FileText,
-  DollarSign,
-  UserCheck,
-  MessagesSquare,
-  Settings as SettingsIcon,
-} from "lucide-react";
+import { LayoutGrid, FileText, DollarSign, UserCheck, MessagesSquare, Settings as SettingsIcon } from "lucide-react";
 import Sidebar, { NavItem } from "@/components/layout/Sidebar";
 import TopBar from "@/components/layout/TopBar";
 import BusinessTopBarBadges from "@/components/layout/BusinessTopBarBadges";
-import { getCompanySettings } from "@/lib/api/business";
+import { formattedUserId, getSession, initials } from "@/lib/auth";
 
 const navItems: NavItem[] = [
   { href: "/dashboard", labelKey: "sidebar.dashboard", icon: <LayoutGrid className="h-4 w-4" /> },
@@ -21,38 +14,22 @@ const navItems: NavItem[] = [
 ];
 
 // Shared shell for every page under the Business Owner portal.
-export default async function BusinessLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  const settings = await getCompanySettings();
+export default async function BusinessLayout({ children }: { children: React.ReactNode }) {
+  const session = await getSession("business");
+  const { user, company } = session;
 
   return (
     <div className="flex h-screen bg-brand-bgblue">
-      <Sidebar
-        workspaceLabelKey="sidebar.companyUser"
-        navItems={navItems}
-        userName="Admin User"
-        userEmail="admin@abc.lk"
-        userInitials="AU"
-        settingsHref="/settings"
-        badgeHrefs={["/discussions"]}
-      />
+      <Sidebar workspaceLabelKey="sidebar.companyUser" navItems={navItems} settingsHref="/settings" badgeHrefs={["/discussions"]} />
       <div className="flex min-w-0 flex-1 flex-col">
         <TopBar
           roleLabel="Admin"
-          userInitials="AU"
-          displayName="Admin User"
-          email="admin@abc.lk"
+          userInitials={initials(user.fullName)}
+          displayName={user.fullName}
+          email={user.email}
+          userId={formattedUserId(session)}
           settingsHref="/settings"
-          showSearch={false}
-          leftContent={
-            <BusinessTopBarBadges
-              initialCompanyName={settings.companyName}
-              initialFinancialYear={settings.financialYear}
-            />
-          }
+          leftContent={<BusinessTopBarBadges initialCompanyName={company?.companyName ?? ""} initialFinancialYear={company?.financialYear ?? ""} />}
         />
         <main className="flex-1 overflow-y-auto p-8">{children}</main>
       </div>

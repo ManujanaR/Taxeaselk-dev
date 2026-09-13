@@ -23,14 +23,19 @@ export default function NotificationBell() {
   const [items, setItems] = useState<AppNotification[]>([]);
   const [unread, setUnread] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
+  const latestSeen = useRef<string | null>(null);
 
   const load = useCallback(async () => {
     try {
       const data = await getNotifications();
       setItems(data.notifications);
       setUnread(data.unreadCount);
+      // A new notification means the other portal changed something: re-render server data on this page.
+      const newest = data.notifications[0]?.id ?? null;
+      if (latestSeen.current !== null && newest !== latestSeen.current) router.refresh();
+      latestSeen.current = newest;
     } catch {}
-  }, []);
+  }, [router]);
 
   useEffect(() => {
     load();

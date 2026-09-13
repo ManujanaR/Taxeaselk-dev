@@ -9,12 +9,12 @@ import { Field, Input, Select } from "@/components/ui/Input";
 import { api } from "@/lib/api/client";
 import { dateTime, relative } from "@/lib/format";
 import { errorMessage, toast } from "@/lib/toast";
+import { useRealtime } from "@/lib/realtime";
 import type { Role, Thread, ThreadMessage } from "@/lib/types";
 
 const CATEGORIES = ["General", "Tax Computation", "Fixed Assets", "Documents", "Deadlines"];
-const POLL_MS = 30_000;
 
-// One component for both portals: threads on the left, message stream on the right, polled every 30s.
+// One component for both portals: threads on the left, message stream on the right, updated by push.
 export default function DiscussionsManager({ role, initialThreads, userId, engagements = [] }: { role: Role; initialThreads: Thread[]; userId: string; engagements?: { id: string; companyName: string }[] }) {
   const [threads, setThreads] = useState(initialThreads);
   const [activeId, setActiveId] = useState<string | null>(initialThreads[0]?.id ?? null);
@@ -26,6 +26,7 @@ export default function DiscussionsManager({ role, initialThreads, userId, engag
   const [newOpen, setNewOpen] = useState(false);
   const [draft, setDraft] = useState({ topic: "", category: CATEGORIES[0], text: "", engagementId: engagements[0]?.id ?? "" });
   const bottomRef = useRef<HTMLDivElement>(null);
+  const { version } = useRealtime();
 
   const loadThreads = useCallback(async () => {
     try {
@@ -44,12 +45,11 @@ export default function DiscussionsManager({ role, initialThreads, userId, engag
   }, [activeId, loadMessages]);
 
   useEffect(() => {
-    const id = setInterval(() => {
-      loadThreads();
-      if (activeId) loadMessages(activeId);
-    }, POLL_MS);
-    return () => clearInterval(id);
-  }, [activeId, loadThreads, loadMessages]);
+    if (version === 0) return; // initial data came from the server render
+    loadThreads();
+    if (activeId) loadMessages(activeId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [version]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ block: "end" });

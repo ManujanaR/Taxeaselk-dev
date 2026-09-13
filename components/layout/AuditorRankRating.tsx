@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Star, ChevronDown, ShieldCheck } from "lucide-react";
 import { api } from "@/lib/api/client";
 import { date } from "@/lib/format";
+import { useRealtime } from "@/lib/realtime";
 
 interface ReviewsOut {
   averageRating: number | null;
@@ -20,10 +21,11 @@ export default function AuditorRankRating() {
   const [data, setData] = useState<ReviewsOut | null>(null);
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const { version } = useRealtime();
 
   useEffect(() => {
     api<ReviewsOut>("/api/auditor/reviews").then(setData).catch(() => {});
-  }, [open]);
+  }, [open, version]);
 
   useEffect(() => {
     const onClick = (e: MouseEvent) => {

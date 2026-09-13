@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { ChevronDown, Settings, LogOut, Copy, Check } from "lucide-react";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { api } from "@/lib/api/client";
+import { useRealtime } from "@/lib/realtime";
 
 interface ProfileMenuProps {
   displayName: string;
@@ -19,6 +20,7 @@ interface ProfileMenuProps {
 export default function ProfileMenu({ displayName, email, userInitials, userId, roleLabel, settingsHref }: ProfileMenuProps) {
   const { t } = useLanguage();
   const router = useRouter();
+  const { disconnect } = useRealtime();
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -33,6 +35,7 @@ export default function ProfileMenu({ displayName, email, userInitials, userId, 
 
   async function logout() {
     setOpen(false);
+    disconnect();
     try {
       await api("/api/auth/logout", { method: "POST" });
     } finally {

@@ -1,11 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Bell, AlertTriangle, CheckCircle2, MessagesSquare, Check, ChevronRight } from "lucide-react";
+import { Bell, AlertTriangle, CheckCircle2, MessagesSquare, Check, ChevronRight, WifiOff } from "lucide-react";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
-import { AppNotification, getNotifications, markAllNotificationsAsRead, markNotificationAsRead } from "@/lib/api/notifications";
+import { useRealtime } from "@/lib/realtime";
 import { relative } from "@/lib/format";
+import type { AppNotification } from "@/lib/api/notifications";
 
 const TONE = {
   critical: { bg: "bg-red-50", text: "text-red-600", icon: AlertTriangle },
@@ -14,43 +15,13 @@ const TONE = {
   success: { bg: "bg-emerald-50", text: "text-emerald-600", icon: CheckCircle2 },
 };
 
-const POLL_MS = 30_000;
-
+// Pure view over the realtime context: notifications arrive by push, never by polling.
 export default function NotificationBell() {
   const { t } = useLanguage();
   const router = useRouter();
+  const { notifications: items, unreadCount: unread, connected, markRead, markAll } = useRealtime();
   const [open, setOpen] = useState(false);
-  const [items, setItems] = useState<AppNotification[]>([]);
-  const [unread, setUnread] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
-  const latestSeen = useRef<string | null>(null);
-
-  const load = useCallback(async () => {
-    try {
-      const data = await getNotifications();
-      setItems(data.notifications);
-      setUnread(data.unreadCount);
-      // A new notification means the other portal changed something: re-render server data on this page.
-      const newest = data.notifications[0]?.id ?? null;
-      if (latestSeen.current !== null && newest !== latestSeen.current) router.refresh();
-      latestSeen.current = newest;
-    } catch {}
-  }, [router]);
-
-  useEffect(() => {
-    load();
-    const id = setInterval(load, POLL_MS);
-    const onFocus = () => load();
-    window.addEventListener("focus", onFocus);
-    return () => {
-      clearInterval(id);
-      window.removeEventListener("focus", onFocus);
-    };
-  }, [load]);
-
-  useEffect(() => {
-    if (open) load();
-  }, [open, load]);
 
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
@@ -61,19 +32,9 @@ export default function NotificationBell() {
   }, []);
 
   function onItemClick(n: AppNotification) {
-    if (!n.isRead) {
-      setItems((xs) => xs.map((x) => (x.id === n.id ? { ...x, isRead: true } : x)));
-      setUnread((u) => Math.max(0, u - 1));
-      markNotificationAsRead(n.id).catch(() => {});
-    }
+    if (!n.isRead) markRead(n.id);
     setOpen(false);
     if (n.link) router.push(n.link);
-  }
-
-  function markAll() {
-    setItems((xs) => xs.map((x) => ({ ...x, isRead: true })));
-    setUnread(0);
-    markAllNotificationsAsRead().catch(() => {});
   }
 
   return (
@@ -82,6 +43,7 @@ export default function NotificationBell() {
         aria-label={t("common.notifications")}
         onClick={() => setOpen((o) => !o)}
         className="relative flex h-9 w-9 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+        title={connected ? "Live updates connected" : "Reconnecting to live updates..."}
       >
         <Bell className="h-5 w-5" />
         {unread > 0 && (
@@ -89,6 +51,7 @@ export default function NotificationBell() {
             {unread > 9 ? "9+" : unread}
           </span>
         )}
+        {!connected && <WifiOff className="absolute -bottom-0.5 -right-0.5 h-3 w-3 text-amber-500" />}
       </button>
 
       {open && (

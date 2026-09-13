@@ -1,5 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Next's gzip buffers the proxied /api/events stream; let the reverse proxy compress in production.
+  compress: false,
   // Always re-fetch server data on navigation (default keeps a 30s client cache of dynamic pages).
   experimental: { staleTimes: { dynamic: 0 } },
   async rewrites() {

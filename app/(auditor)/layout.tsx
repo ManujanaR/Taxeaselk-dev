@@ -3,6 +3,7 @@ import Sidebar, { NavItem } from "@/components/layout/Sidebar";
 import TopBar from "@/components/layout/TopBar";
 import AuditorRankRating from "@/components/layout/AuditorRankRating";
 import { formattedUserId, getSession, initials } from "@/lib/auth";
+import { RealtimeProvider } from "@/lib/realtime";
 
 const navItems: NavItem[] = [
   { href: "/auditor-dashboard", labelKey: "sidebar.dashboard", icon: <LayoutGrid className="h-4 w-4" /> },
@@ -21,6 +22,7 @@ export default async function AuditorLayout({ children }: { children: React.Reac
   const { user, auditorProfile } = session;
 
   return (
+    <RealtimeProvider>
     <div className="flex h-screen bg-gray-50">
       <Sidebar workspaceLabelKey="sidebar.auditorWorkspace" navItems={navItems} settingsHref="/auditor-settings" badgeHrefs={["/requests", "/responses", "/auditor-discussions"]} />
       <div className="flex min-w-0 flex-1 flex-col">
@@ -39,5 +41,6 @@ export default async function AuditorLayout({ children }: { children: React.Reac
         <main className="flex-1 overflow-y-auto p-8">{children}</main>
       </div>
     </div>
+    </RealtimeProvider>
   );
 }

@@ -18,7 +18,9 @@ The backend must be running (see `../backend/README.md`).
 - `middleware.ts` verifies the cookie with `jose` and redirects: no session → `/sign-in`; wrong portal → own dashboard.
 - Server Components fetch with `lib/api/server.ts` (forwards the cookie); client components use `lib/api/client.ts`. Both throw `ApiError` on non-2xx; a client 401 sends the user to sign-in.
 - Typed wrappers live in `lib/api/business.ts`, `lib/api/auditor.ts`, `lib/api/notifications.ts`; types in `lib/types/index.ts` mirror the backend schemas.
-- Mutations call `router.refresh()` so server-rendered data re-fetches. The notification bell, sidebar badges and open discussion thread poll every 30 s.
+- Mutations call `router.refresh()` so server-rendered data re-fetches.
+- `lib/realtime.tsx` opens one Server-Sent Events stream (`/api/events`) per tab. Every event from the other portal re-renders the current page and bumps a `version` that client-fetched components (bell, sidebar badges, discussions, engagement drawer, rating badge) refetch on. No polling anywhere. Note: HTTP/1.1 allows 6 connections per origin and each tab holds one stream; serve over HTTP/2 in production.
+- `compress: false` in `next.config.js` because Next's gzip buffers the proxied event stream; let nginx/Caddy compress.
 - The only browser storage used is the language preference.
 
 ## Production

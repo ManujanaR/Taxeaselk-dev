@@ -9,6 +9,7 @@ import Logo from "@/components/ui/Logo";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { TranslationKey } from "@/lib/i18n/translations";
 import { getNavBadges } from "@/lib/api/notifications";
+import { useRealtime } from "@/lib/realtime";
 
 export interface NavItem {
   href: string;
@@ -44,6 +45,7 @@ export default function Sidebar({
 }: SidebarProps) {
   const pathname = usePathname();
   const { t } = useLanguage();
+  const { version } = useRealtime();
 
   // Live badge counts fetched from the API
   const [liveBadges, setLiveBadges] = useState<Record<string, number>>({});
@@ -57,10 +59,8 @@ export default function Sidebar({
       } catch {}
     }
     fetchBadges();
-    const interval = setInterval(fetchBadges, 30000);
-    return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [badgeHrefs?.join(",")]);
+  }, [badgeHrefs?.join(","), version]);
 
   return (
     <aside className="flex h-screen w-64 shrink-0 flex-col border-r border-gray-100 bg-white">

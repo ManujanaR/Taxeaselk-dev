@@ -3,6 +3,7 @@ import Sidebar, { NavItem } from "@/components/layout/Sidebar";
 import TopBar from "@/components/layout/TopBar";
 import BusinessTopBarBadges from "@/components/layout/BusinessTopBarBadges";
 import { formattedUserId, getSession, initials } from "@/lib/auth";
+import { RealtimeProvider } from "@/lib/realtime";
 
 const navItems: NavItem[] = [
   { href: "/dashboard", labelKey: "sidebar.dashboard", icon: <LayoutGrid className="h-4 w-4" /> },
@@ -19,6 +20,7 @@ export default async function BusinessLayout({ children }: { children: React.Rea
   const { user, company } = session;
 
   return (
+    <RealtimeProvider>
     <div className="flex h-screen bg-brand-bgblue">
       <Sidebar workspaceLabelKey="sidebar.companyUser" navItems={navItems} settingsHref="/settings" badgeHrefs={["/discussions"]} />
       <div className="flex min-w-0 flex-1 flex-col">
@@ -34,5 +36,6 @@ export default async function BusinessLayout({ children }: { children: React.Rea
         <main className="flex-1 overflow-y-auto p-8">{children}</main>
       </div>
     </div>
+    </RealtimeProvider>
   );
 }

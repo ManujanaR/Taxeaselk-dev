@@ -12,6 +12,7 @@ import AuditorChecklistModal from "./AuditorChecklistModal";
 import { approveEngagement, createRequest, flagDocument, getEngagementDetail, raiseIssue, remindRequest, resolveIssue, verifyDocument } from "@/lib/api/auditor";
 import { date, fileSize } from "@/lib/format";
 import { errorMessage, toast } from "@/lib/toast";
+import { useRealtime } from "@/lib/realtime";
 import type { EngagementDetail } from "@/lib/types";
 
 type Tab = "documents" | "issues" | "requests" | "company";
@@ -24,6 +25,7 @@ export default function EngagementDrawer({ engagementId, onClose, initialTab = "
   const [issueForm, setIssueForm] = useState<{ title: string; comment: string; source: string; severity: "warning" | "critical" } | null>(null);
   const [reqForm, setReqForm] = useState<{ title: string; description: string; category: string; priority: string; dueDate: string } | null>(null);
   const [busy, setBusy] = useState(false);
+  const { version } = useRealtime();
 
   const load = useCallback(async () => {
     try {
@@ -36,7 +38,7 @@ export default function EngagementDrawer({ engagementId, onClose, initialTab = "
 
   useEffect(() => {
     load();
-  }, [load]);
+  }, [load, version]);
 
   async function run(fn: () => Promise<unknown>, ok: string) {
     setBusy(true);

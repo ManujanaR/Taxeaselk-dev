@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     DATABASE_URL: str
     SECRET_KEY: str
     GEMINI_API_KEY: str = ""  # optional; extraction endpoint returns 503 when unset
+    GEMINI_MODEL: str = "gemini-3.8-flash"
 
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440
     UPLOAD_DIR: Path = Path("uploads")

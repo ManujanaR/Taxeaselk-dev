@@ -19,10 +19,10 @@ const FILTERS = [
 type Filter = (typeof FILTERS)[number][0];
 
 // Cross-company queue of every request the auditor has raised.
-export default function RequestsManager({ requests, engagements, initialStatus }: { requests: RequestRow[]; engagements: EngagementRow[]; initialStatus?: string }) {
+export default function RequestsManager({ requests, engagements, initialStatus, companyFilter }: { requests: RequestRow[]; engagements: EngagementRow[]; initialStatus?: string; companyFilter?: string }) {
   const router = useRouter();
   const [filter, setFilter] = useState<Filter>(FILTERS.some(([f]) => f === initialStatus) ? (initialStatus as Filter) : "all");
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState(companyFilter ? (requests.find((r) => r.companyId === companyFilter)?.companyName ?? "") : "");
   const [open, setOpen] = useState(false);
 
   const matches = (r: RequestRow) =>
@@ -60,7 +60,7 @@ export default function RequestsManager({ requests, engagements, initialStatus }
       <div className="mt-4 space-y-3">
         {rows.length === 0 && <Card className="p-10 text-center text-sm text-gray-400">{requests.length ? "Nothing in this view." : "You have not raised any requests yet."}</Card>}
         {rows.map((r) => (
-          <RequestCard key={r.id} request={r} companyName={r.companyName} companyHref={`/companies/${r.engagementId}?tab=requests`} onChanged={() => router.refresh()} />
+          <RequestCard key={r.id} request={r} companyName={r.companyName} companyHref={`/companies/${r.engagementId}`} onChanged={() => router.refresh()} />
         ))}
       </div>
 

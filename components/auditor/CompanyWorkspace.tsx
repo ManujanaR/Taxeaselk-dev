@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Building2, CheckCircle2, ClipboardList, Download, FileText, Flag, MessagesSquare, Paperclip, Plus, ShieldCheck } from "lucide-react";
+import { ArrowLeft, Building2, CheckCircle2, ClipboardList, Download, FileText, Flag, Inbox, MessagesSquare, Paperclip, ShieldCheck } from "lucide-react";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
@@ -11,21 +11,18 @@ import ProgressBar from "@/components/ui/ProgressBar";
 import DocumentStatusBadge from "@/components/business/DocumentStatusBadge";
 import EngagementStatusBadge from "./EngagementStatusBadge";
 import AuditorChecklistModal from "./AuditorChecklistModal";
-import RequestCard from "./RequestCard";
-import NewRequestForm from "./NewRequestForm";
 import { approveEngagement, flagDocument, verifyDocument } from "@/lib/api/auditor";
 import { date, fileSize } from "@/lib/format";
 import { errorMessage, toast } from "@/lib/toast";
 import type { EngagementDetail } from "@/lib/types";
 
-type Tab = "overview" | "documents" | "requests";
-const TABS: [Tab, string][] = [["overview", "Overview"], ["documents", "Documents"], ["requests", "Requests"]];
+type Tab = "overview" | "documents";
+const TABS: [Tab, string][] = [["overview", "Overview"], ["documents", "Documents"]];
 
 export default function CompanyWorkspace({ detail: d, initialTab }: { detail: EngagementDetail; initialTab?: string }) {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>(TABS.some(([t]) => t === initialTab) ? (initialTab as Tab) : "overview");
   const [checklistOpen, setChecklistOpen] = useState(false);
-  const [newRequest, setNewRequest] = useState(false);
   const [busy, setBusy] = useState(false);
   const eng = d.engagement;
   const canWork = eng.status === "active" || eng.status === "under_review";
@@ -67,6 +64,7 @@ export default function CompanyWorkspace({ detail: d, initialTab }: { detail: En
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <Link href={`/requests?company=${eng.companyId}`}><Button variant="secondary" icon={<Inbox className="h-4 w-4" />}>Requests{openRequests.length ? ` (${openRequests.length} open)` : ""}</Button></Link>
           <Link href="/auditor-discussions"><Button variant="secondary" icon={<MessagesSquare className="h-4 w-4" />}>Discussions</Button></Link>
           {eng.status === "under_review" && (
             <Button variant="success" icon={<ShieldCheck className="h-4 w-4" />} disabled={busy || openRequests.length > 0} title={openRequests.length ? `${openRequests.length} open request(s) must be resolved first` : undefined}
@@ -79,7 +77,7 @@ export default function CompanyWorkspace({ detail: d, initialTab }: { detail: En
 
       <div className="mt-5 flex gap-1 border-b border-gray-100">
         {TABS.map(([t, label]) => {
-          const n = t === "documents" ? d.documents.length : t === "requests" ? openRequests.length : 0;
+          const n = t === "documents" ? d.documents.length : 0;
           return (
             <button key={t} onClick={() => selectTab(t)} className={`border-b-2 px-4 py-2.5 text-sm font-medium ${tab === t ? "border-brand-blue text-brand-blue" : "border-transparent text-gray-500 hover:text-gray-700"}`}>
               {label}{n ? <span className="ml-1.5 rounded-full bg-gray-100 px-1.5 text-[10px] font-bold text-gray-600">{n}</span> : null}
@@ -106,8 +104,8 @@ export default function CompanyWorkspace({ detail: d, initialTab }: { detail: En
                 <ul className="mt-4 space-y-1.5 text-sm text-gray-600">
                   <li className="flex justify-between"><span>Documents submitted</span><span className="font-medium text-gray-800">{d.documents.length}</span></li>
                   <li className="flex justify-between"><span>Verified</span><span className="font-medium text-gray-800">{eng.verifiedCount} / {eng.documentsCount}</span></li>
-                  <li className="flex justify-between"><span>Open requests</span><span className={`font-medium ${openRequests.length ? "text-status-warning" : "text-gray-800"}`}>{openRequests.length}</span></li>
-                  <li className="flex justify-between"><span>Answers to review</span><span className={`font-medium ${eng.needsReview ? "text-brand-blue" : "text-gray-800"}`}>{eng.needsReview}</span></li>
+                  <li className="flex justify-between"><span>Open requests</span><Link href={`/requests?company=${eng.companyId}`} className={`font-medium hover:underline ${openRequests.length ? "text-status-warning" : "text-gray-800"}`}>{openRequests.length}</Link></li>
+                  <li className="flex justify-between"><span>Answers to review</span><Link href={`/requests?company=${eng.companyId}&status=responded`} className={`font-medium hover:underline ${eng.needsReview ? "text-brand-blue" : "text-gray-800"}`}>{eng.needsReview}</Link></li>
                 </ul>
               </Card>
               <Card className="p-5">
@@ -183,21 +181,9 @@ export default function CompanyWorkspace({ detail: d, initialTab }: { detail: En
             </Card>
           </div>
         )}
-
-        {tab === "requests" && (
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-gray-500">{openRequests.length} open · {d.requests.length - openRequests.length} resolved</p>
-              {canWork && <Button className="px-3 py-1.5 text-xs" icon={<Plus className="h-3.5 w-3.5" />} onClick={() => setNewRequest(true)}>New Request</Button>}
-            </div>
-            {d.requests.length === 0 && <Card className="p-10 text-center text-sm text-gray-400">No requests for this client yet.</Card>}
-            {d.requests.map((r) => <RequestCard key={r.id} request={r} onChanged={() => router.refresh()} />)}
-          </div>
-        )}
       </div>
 
       {checklistOpen && <AuditorChecklistModal engagementId={eng.id} companyName={eng.companyName} existing={d.checklist} onClose={() => setChecklistOpen(false)} onPublished={() => { setChecklistOpen(false); router.refresh(); }} />}
-      {newRequest && <NewRequestForm engagements={[{ id: eng.id, companyName: eng.companyName }]} onClose={() => setNewRequest(false)} onCreated={() => { setNewRequest(false); router.refresh(); }} />}
     </div>
   );
 }

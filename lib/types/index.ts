@@ -163,6 +163,7 @@ export interface RfiRequest {
 
 export interface RequestRow extends RfiRequest {
   companyName: string;
+  companyId: string;
 }
 
 export interface EngagementRow extends Engagement {

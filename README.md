@@ -1,6 +1,8 @@
 # TaxEaseLK Frontend
 
-Next.js 14 (App Router) + Tailwind. Two portals: Business (`/dashboard`, `/documents`, `/financials`, `/auditor-review`, `/discussions`, `/settings`) and Auditor (`/auditor-dashboard`, `/companies`, `/auditor-documents`, `/responses`, `/requests`, `/auditor-discussions`, `/audit-log`, `/auditor-settings`).
+Next.js 14 (App Router) + Tailwind. Two portals: Business (`/dashboard`, `/documents`, `/financials`, `/auditor-review`, `/discussions`, `/settings`) and Auditor (`/auditor-dashboard`, `/companies`, `/companies/[engagementId]` (overview · documents · requests), `/requests`, `/auditor-discussions`, `/audit-log`, `/auditor-settings`).
+
+Domain model in one line: the auditor publishes a **Checklist** (standing document list) and raises **Requests** (anything else: vouchers, clarifications, findings); the client answers a request once with a note and files; the auditor resolves it or sends it back. Evidence stays attached to the request and is listed on the company page.
 
 ## Run locally
 

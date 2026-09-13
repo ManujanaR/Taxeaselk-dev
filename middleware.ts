@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { jwtVerify } from "jose";
 
 const BUSINESS = ["/dashboard", "/documents", "/financials", "/auditor-review", "/discussions", "/settings"];
-const AUDITOR = ["/auditor-dashboard", "/companies", "/auditor-documents", "/responses", "/requests", "/auditor-discussions", "/audit-log", "/auditor-settings"];
+const AUDITOR = ["/auditor-dashboard", "/companies", "/requests", "/auditor-discussions", "/audit-log", "/auditor-settings"];
 const AUTH_PAGES = ["/sign-in", "/sign-up", "/role"];
 const HOME: Record<string, string> = { business: "/dashboard", auditor: "/auditor-dashboard" };
 

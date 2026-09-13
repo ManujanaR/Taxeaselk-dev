@@ -15,7 +15,7 @@ export default async function AuditorDashboardPage() {
     <div>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Tile title={<T k="auditor.dashboard.activeClients" />} sub="Active companies under your review" value={data.companiesAssigned} href="/companies" cta={<T k="sidebar.companies" />} />
-        <Tile title={<T k="auditor.dashboard.pendingReviewCount" />} sub="Handover packs awaiting sign-off" value={data.pendingReviews} valueClass="text-brand-blue" href="/companies?status=under_review" cta="Review Queue" />
+        <Tile title={<T k="auditor.dashboard.pendingReviewCount" />} sub="Handover packs awaiting sign-off" value={data.pendingReviews} valueClass="text-brand-blue" href="/companies?status=under_review" cta="Open Companies" />
         <Tile title={<T k="common.completed" />} sub="Audits signed off" value={data.completedThisPeriod} valueClass="text-status-success" href="/companies?status=approved" cta={<T k="common.viewAll" />} />
       </div>
 
@@ -31,7 +31,7 @@ export default async function AuditorDashboardPage() {
               <Row label="Waiting for pack" value={w.active} href="/companies?status=active" />
               <Row label={<T k="status.underReview" />} value={w.underReview} href="/companies?status=under_review" />
               <Row label={<T k="common.completed" />} value={w.approved} href="/companies?status=approved" />
-              <Row label="Critical issues open" value={data.criticalIssues} href="/companies" danger />
+              <Row label="High-priority requests open" value={data.highPriorityOpen} href="/requests" danger />
             </div>
           </Card>
           <AuditorRecentActivityCard activity={data.recentActivity} />

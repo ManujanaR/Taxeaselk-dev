@@ -1,4 +1,4 @@
-import { LayoutGrid, Building2, FileText, FolderDown, Inbox, MessagesSquare, ScrollText, Settings as SettingsIcon } from "lucide-react";
+import { LayoutGrid, Building2, Inbox, MessagesSquare, ScrollText, Settings as SettingsIcon } from "lucide-react";
 import Sidebar, { NavItem } from "@/components/layout/Sidebar";
 import TopBar from "@/components/layout/TopBar";
 import AuditorRankRating from "@/components/layout/AuditorRankRating";
@@ -8,8 +8,6 @@ import { RealtimeProvider } from "@/lib/realtime";
 const navItems: NavItem[] = [
   { href: "/auditor-dashboard", labelKey: "sidebar.dashboard", icon: <LayoutGrid className="h-4 w-4" /> },
   { href: "/companies", labelKey: "sidebar.companies", icon: <Building2 className="h-4 w-4" /> },
-  { href: "/auditor-documents", labelKey: "sidebar.documents", icon: <FileText className="h-4 w-4" /> },
-  { href: "/responses", labelKey: "sidebar.responses", icon: <FolderDown className="h-4 w-4" /> },
   { href: "/requests", labelKey: "sidebar.requests", icon: <Inbox className="h-4 w-4" /> },
   { href: "/auditor-discussions", labelKey: "sidebar.discussions", icon: <MessagesSquare className="h-4 w-4" /> },
   { href: "/audit-log", labelKey: "sidebar.auditLog", icon: <ScrollText className="h-4 w-4" /> },
@@ -24,7 +22,7 @@ export default async function AuditorLayout({ children }: { children: React.Reac
   return (
     <RealtimeProvider>
     <div className="flex h-screen bg-gray-50">
-      <Sidebar workspaceLabelKey="sidebar.auditorWorkspace" navItems={navItems} settingsHref="/auditor-settings" badgeHrefs={["/requests", "/responses", "/auditor-discussions"]} />
+      <Sidebar workspaceLabelKey="sidebar.auditorWorkspace" navItems={navItems} settingsHref="/auditor-settings" badgeHrefs={["/requests", "/auditor-discussions"]} />
       <div className="flex min-w-0 flex-1 flex-col">
         <TopBar
           roleLabel="Auditor"

@@ -1,5 +1,5 @@
 import { api } from "./client";
-import type { Company, DocumentsView, EngagementView, ExtractResult, FinancialInputs, FinancialsView, Review, RfiRequest, RfiResponse, StatutoryDocument, Issue, Engagement } from "@/lib/types";
+import type { Company, DocumentsView, EngagementView, ExtractResult, FinancialInputs, FinancialsView, Review, RfiRequest, RfiResponse, StatutoryDocument, Engagement } from "@/lib/types";
 
 export const getCompany = () => api<Company>("/api/company");
 export const updateCompany = (payload: Omit<Company, "id">) => api<Company>("/api/company", { method: "PUT", json: payload });
@@ -25,12 +25,6 @@ export const saveFinancials = (payload: FinancialInputs) => api<FinancialsView>(
 export const extractFinancials = (documentId: string) => api<ExtractResult>("/api/financials/extract", { method: "POST", json: { documentId } });
 export const submitHandover = () => api<void>("/api/handover", { method: "POST" });
 
-export const respondToIssue = (id: string, responseText: string, file?: File | null) => {
-  const body = new FormData();
-  body.append("responseText", responseText);
-  if (file) body.append("file", file);
-  return api<Issue>(`/api/issues/${id}/respond`, { method: "POST", body });
-};
 export const getRequests = () => api<RfiRequest[]>("/api/requests");
 export const respondToRequest = (id: string, note: string, files: File[]) => {
   const body = new FormData();

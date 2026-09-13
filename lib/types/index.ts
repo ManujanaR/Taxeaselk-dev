@@ -90,31 +90,12 @@ export interface Attachment {
   contentType: string;
 }
 
-export type IssueSeverityV2 = "critical" | "warning";
-export type IssueStatus = "action_required" | "pending_clarification" | "resolved";
-
-export interface Issue {
-  id: string;
-  engagementId: string;
-  title: string;
-  comment: string;
-  source: string;
-  severity: IssueSeverityV2;
-  status: IssueStatus;
-  responseText: string;
-  createdAt: string;
-  resolvedAt: string | null;
-  attachments: Attachment[];
-}
-
 export interface EngagementView {
   engagement: Engagement | null;
   auditor: AuditorSummary | null;
-  issues: Issue[];
-  approvedCount: number;
-  warningsCount: number;
-  criticalCount: number;
-  pendingCount: number;
+  openRequests: number;
+  needsReviewCount: number;
+  resolvedCount: number;
   review: Review | null;
 }
 
@@ -184,21 +165,13 @@ export interface RequestRow extends RfiRequest {
   companyName: string;
 }
 
-export interface ResponseRow extends RfiResponse {
-  referenceCode: string;
-  requestTitle: string;
-  category: string;
-  companyName: string;
-  engagementId: string;
-}
-
 export interface EngagementRow extends Engagement {
   companyName: string;
   tinNumber: string;
   financialYear: string;
-  criticalCount: number;
-  warningsCount: number;
   openRequests: number;
+  highPriorityOpen: number;
+  needsReview: number;
   progressPercent: number;
   documentsCount: number;
   verifiedCount: number;
@@ -209,7 +182,6 @@ export interface EngagementDetail {
   company: Company;
   documents: StatutoryDocument[];
   checklist: ChecklistItem[];
-  issues: Issue[];
   requests: RfiRequest[];
 }
 
@@ -228,7 +200,7 @@ export interface AuditLogEntry {
 export interface AuditorDashboard {
   companiesAssigned: number;
   pendingReviews: number;
-  criticalIssues: number;
+  highPriorityOpen: number;
   completedThisPeriod: number;
   priorityReviews: { engagementId: string; companyName: string; tag: "CRITICAL" | "READY" | "ATTENTION" | "ACTIVE"; detail: string; progressPercent: number; dueDate: string | null }[];
   workload: { invited: number; active: number; underReview: number; approved: number };
@@ -288,7 +260,7 @@ export interface DashboardView {
   auditorStatus: EngagementStatus | "none";
   auditorName: string | null;
   auditorFirm: string | null;
-  attentionItems: { id: string; severity: IssueSeverityV2; title: string; description: string; link: string }[];
+  attentionItems: { id: string; severity: "critical" | "warning"; title: string; description: string; link: string }[];
 }
 
 export interface Thread {

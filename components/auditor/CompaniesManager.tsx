@@ -1,14 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Building2, Search, Check, X, Mail } from "lucide-react";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import ProgressBar from "@/components/ui/ProgressBar";
 import EngagementStatusBadge from "./EngagementStatusBadge";
-import IssueCountPair from "./IssueCountPair";
-import EngagementDrawer from "./EngagementDrawer";
 import { acceptEngagement, declineEngagement } from "@/lib/api/auditor";
 import { date } from "@/lib/format";
 import { errorMessage, toast } from "@/lib/toast";
@@ -22,11 +21,10 @@ const TABS: { id: string; label: string }[] = [
   { id: "approved", label: "Approved" },
 ];
 
-export default function CompaniesManager({ engagements, initialStatus, openEngagementId }: { engagements: EngagementRow[]; initialStatus?: string; openEngagementId?: string }) {
+export default function CompaniesManager({ engagements, initialStatus }: { engagements: EngagementRow[]; initialStatus?: string }) {
   const router = useRouter();
   const [tab, setTab] = useState(initialStatus && TABS.some((t) => t.id === initialStatus) ? initialStatus : "all");
   const [query, setQuery] = useState("");
-  const [openId, setOpenId] = useState<string | null>(openEngagementId ?? null);
   const [busy, setBusy] = useState<string | null>(null);
 
   const rows = engagements.filter((e) => (tab === "all" ? e.status !== "invited" : e.status === tab) && (e.companyName + e.tinNumber).toLowerCase().includes(query.toLowerCase()));
@@ -38,7 +36,7 @@ export default function CompaniesManager({ engagements, initialStatus, openEngag
       await (accept ? acceptEngagement(id) : declineEngagement(id));
       toast.success(accept ? "Engagement accepted. Publish the document checklist next." : "Invitation declined.");
       router.refresh();
-      if (accept) setOpenId(id);
+      if (accept) router.push(`/companies/${id}`);
     } catch (e) {
       toast.error(errorMessage(e));
     } finally {
@@ -81,7 +79,7 @@ export default function CompaniesManager({ engagements, initialStatus, openEngag
               <th className="px-4 py-3">TIN</th>
               <th className="px-4 py-3">Tax Year</th>
               <th className="px-4 py-3">Status</th>
-              <th className="px-4 py-3">Issues</th>
+              <th className="px-4 py-3">Requests</th>
               <th className="px-4 py-3">Documents</th>
               <th className="px-4 py-3">Progress</th>
               <th className="px-4 py-3 text-right">Actions</th>
@@ -96,15 +94,19 @@ export default function CompaniesManager({ engagements, initialStatus, openEngag
             {rows.map((e) => (
               <tr key={e.id} className="hover:bg-gray-50/60">
                 <td className="px-4 py-3">
-                  <button onClick={() => e.status !== "invited" && setOpenId(e.id)} className="flex items-center gap-2 font-medium text-gray-800 hover:text-brand-blue">
-                    <Building2 className="h-4 w-4 text-gray-400" /> {e.companyName}
-                  </button>
+                  {e.status === "invited" ? (
+                    <span className="flex items-center gap-2 font-medium text-gray-800"><Building2 className="h-4 w-4 text-gray-400" /> {e.companyName}</span>
+                  ) : (
+                    <Link href={`/companies/${e.id}`} className="flex items-center gap-2 font-medium text-gray-800 hover:text-brand-blue">
+                      <Building2 className="h-4 w-4 text-gray-400" /> {e.companyName}
+                    </Link>
+                  )}
                   {e.status === "invited" && e.message && <p className="mt-0.5 max-w-xs truncate text-xs text-gray-400">“{e.message}”</p>}
                 </td>
                 <td className="px-4 py-3 font-mono text-xs text-gray-600">{e.tinNumber || "—"}</td>
                 <td className="px-4 py-3 text-gray-600">{e.taxYear}</td>
                 <td className="px-4 py-3"><EngagementStatusBadge status={e.status} /></td>
-                <td className="px-4 py-3"><IssueCountPair critical={e.criticalCount} warnings={e.warningsCount} /></td>
+                <td className="px-4 py-3 text-sm">{e.openRequests === 0 ? <span className="font-medium text-status-success">Clear</span> : <span>{e.needsReview > 0 && <span className="font-medium text-brand-blue">{e.needsReview} to review</span>}{e.needsReview > 0 && e.openRequests - e.needsReview > 0 && <span className="text-gray-300"> · </span>}{e.openRequests - e.needsReview > 0 && <span className="text-status-warning">{e.openRequests - e.needsReview} waiting</span>}{e.highPriorityOpen > 0 && <span className="ml-1 rounded bg-red-50 px-1 text-[10px] font-bold text-red-700">HIGH</span>}</span>}</td>
                 <td className="px-4 py-3 text-gray-600">{e.verifiedCount} / {e.documentsCount} verified</td>
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-2">
@@ -120,7 +122,7 @@ export default function CompaniesManager({ engagements, initialStatus, openEngag
                         <Button variant="secondary" className="px-2.5 py-1.5 text-xs" icon={<X className="h-3.5 w-3.5" />} disabled={busy === e.id} onClick={() => respond(e.id, false)}>Decline</Button>
                       </>
                     ) : (
-                      <Button variant="secondary" className="px-3 py-1.5 text-xs" onClick={() => setOpenId(e.id)}>Open</Button>
+                      <Link href={`/companies/${e.id}`}><Button variant="secondary" className="px-3 py-1.5 text-xs">Open</Button></Link>
                     )}
                   </div>
                   {e.status === "invited" && <p className="mt-1 text-right text-[10px] text-gray-400">Invited {date(e.createdAt)}</p>}
@@ -131,7 +133,6 @@ export default function CompaniesManager({ engagements, initialStatus, openEngag
         </table>
       </Card>
 
-      {openId && <EngagementDrawer engagementId={openId} onClose={() => { setOpenId(null); router.refresh(); }} />}
     </div>
   );
 }

@@ -55,7 +55,7 @@ export default function Sidebar({
     async function fetchBadges() {
       try {
         const b = await getNavBadges();
-        setLiveBadges({ "/requests": b.requests, "/responses": b.responses, "/auditor-discussions": b.threads, "/discussions": b.threads, "/auditor-review": b.requests });
+        setLiveBadges({ "/requests": b.requests, "/auditor-review": b.requests, "/auditor-discussions": b.threads, "/discussions": b.threads });
       } catch {}
     }
     fetchBadges();

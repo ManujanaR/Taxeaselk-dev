@@ -21,7 +21,7 @@ export default function AuditorPriorityReviews({ reviews }: { reviews: AuditorDa
           {reviews.map((r) => {
             const days = daysUntil(r.dueDate);
             return (
-              <Link key={r.engagementId} href={`/companies?engagementId=${r.engagementId}`} className="-mx-2 flex items-center gap-4 rounded-lg px-2 py-3 hover:bg-gray-50">
+              <Link key={r.engagementId} href={`/companies/${r.engagementId}`} className="-mx-2 flex items-center gap-4 rounded-lg px-2 py-3 hover:bg-gray-50">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
                     <p className="truncate font-medium text-gray-800">{r.companyName}</p>

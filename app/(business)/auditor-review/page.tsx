@@ -1,9 +1,8 @@
 import Card from "@/components/ui/Card";
 import SummaryCountRow from "@/components/business/SummaryCountRow";
 import InviteAuditorButton from "@/components/business/InviteAuditorButton";
-import AuditorIssuesManager from "@/components/business/AuditorIssuesManager";
 import AssignedAuditorCard from "@/components/business/AssignedAuditorCard";
-import RequestsResponder from "@/components/business/RequestsResponder";
+import AuditorRequests from "@/components/business/AuditorRequests";
 import T from "@/components/layout/T";
 import { apiServer } from "@/lib/api/server";
 import type { EngagementView, RfiRequest } from "@/lib/types";
@@ -34,16 +33,14 @@ export default async function AuditorReviewPage() {
             <T k="business.auditorReview.citStatus" />
           </p>
           <div className="divide-y divide-gray-50">
-            <SummaryCountRow label="Resolved" count={view.approvedCount} tone="success" />
-            <SummaryCountRow label="Warnings" count={view.warningsCount} tone="warning" />
-            <SummaryCountRow label="Critical" count={view.criticalCount} tone="critical" />
-            <SummaryCountRow label="Awaiting auditor" count={view.pendingCount} tone="neutral" />
+            <SummaryCountRow label="Waiting on you" count={view.openRequests} tone={view.openRequests ? "warning" : "success"} />
+            <SummaryCountRow label="Awaiting auditor review" count={view.needsReviewCount} tone="info" />
+            <SummaryCountRow label="Resolved" count={view.resolvedCount} tone="success" />
           </div>
         </Card>
       </div>
 
-      <AuditorIssuesManager issues={view.issues} />
-      <RequestsResponder requests={requests} />
+      <AuditorRequests requests={requests} />
     </div>
   );
 }

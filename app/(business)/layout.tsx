@@ -22,7 +22,7 @@ export default async function BusinessLayout({ children }: { children: React.Rea
   return (
     <RealtimeProvider>
     <div className="flex h-screen bg-brand-bgblue">
-      <Sidebar workspaceLabelKey="sidebar.companyUser" navItems={navItems} settingsHref="/settings" badgeHrefs={["/discussions"]} />
+      <Sidebar workspaceLabelKey="sidebar.companyUser" navItems={navItems} settingsHref="/settings" badgeHrefs={["/auditor-review", "/discussions"]} />
       <div className="flex min-w-0 flex-1 flex-col">
         <TopBar
           roleLabel="Admin"

@@ -1,12 +1,18 @@
-import { CheckCircle2, AlertTriangle, Clock, Loader2 } from "lucide-react";
+import { CheckCircle2, AlertTriangle, Clock, Loader2, Lock } from "lucide-react";
 import Badge from "@/components/ui/Badge";
 import type { DocStatus } from "@/lib/types";
 
-export default function DocumentStatusBadge({ status }: { status: DocStatus | "uploading" }) {
+export default function DocumentStatusBadge({ status, unsent = false }: { status: DocStatus | "uploading"; unsent?: boolean }) {
   if (status === "uploading")
     return (
       <Badge tone="info">
         <Loader2 className="mr-1 h-3 w-3 animate-spin" /> Uploading
+      </Badge>
+    );
+  if (unsent)
+    return (
+      <Badge tone="neutral">
+        <Lock className="mr-1 h-3 w-3" /> Not sent to auditor
       </Badge>
     );
   if (status === "verified")

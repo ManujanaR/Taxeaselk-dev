@@ -10,7 +10,7 @@ import { errorMessage, toast } from "@/lib/toast";
 import type { DashboardView } from "@/lib/types";
 
 // Locks the pack and moves the engagement to "under review".
-export default function SubmitToAuditorButton({ auditorStatus, hasFigures, missingCount }: { auditorStatus: DashboardView["auditorStatus"]; hasFigures: boolean; missingCount: number }) {
+export default function SubmitToAuditorButton({ auditorStatus, hasFigures, missingCount, unsentCount }: { auditorStatus: DashboardView["auditorStatus"]; hasFigures: boolean; missingCount: number; unsentCount: number }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -44,13 +44,13 @@ export default function SubmitToAuditorButton({ auditorStatus, hasFigures, missi
   return (
     <>
       <Button icon={<Send className="h-4 w-4" />} onClick={() => setOpen(true)} disabled={blockers.length > 0} title={blockers.length ? `Needs ${blockers.join(" and ")}` : undefined}>
-        Submit to Auditor
+        Submit to Auditor{unsentCount ? ` (${unsentCount} document${unsentCount === 1 ? "" : "s"})` : ""}
       </Button>
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <Card className="w-full max-w-md p-6">
             <h3 className="text-base font-bold text-gray-900">Submit handover pack?</h3>
-            <p className="mt-2 text-sm text-gray-600">Your auditor will be notified and can begin the statutory review. You can still upload documents and answer inquiries afterwards.</p>
+            <p className="mt-2 text-sm text-gray-600">{unsentCount ? `${unsentCount} uploaded document${unsentCount === 1 ? "" : "s"} will be sent to your auditor together with your CIT figures.` : "Your CIT figures will be sent to your auditor."} They can then begin the statutory review; documents you upload afterwards go to them immediately.</p>
             {missingCount > 0 && (
               <p className="mt-3 flex items-start gap-2 rounded-lg border border-amber-100 bg-amber-50 p-2.5 text-xs text-amber-800">
                 <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" /> {missingCount} required checklist document{missingCount === 1 ? " is" : "s are"} still missing. The auditor may request them.

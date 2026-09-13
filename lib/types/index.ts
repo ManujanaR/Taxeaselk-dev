@@ -140,10 +140,12 @@ export interface StatutoryDocument {
   checklistItemId: string | null;
   createdAt: string;
   verifiedAt: string | null;
+  submittedAt: string | null; // null = not yet sent to the auditor
 }
 
 export interface DocumentsView {
   uploadedCount: number;
+  unsentCount: number;
   verifiedCount: number;
   reviewRequiredCount: number;
   missingCount: number;

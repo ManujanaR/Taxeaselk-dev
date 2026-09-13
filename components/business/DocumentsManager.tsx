@@ -49,7 +49,7 @@ export default function DocumentsManager({ data }: { data: DocumentsView }) {
   return (
     <>
       <div className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-4">
-        <StatCard label="Uploaded" value={data.uploadedCount} />
+        <StatCard label="Uploaded" value={data.uploadedCount} hint={data.unsentCount ? `${data.unsentCount} not yet sent to auditor` : "All sent to auditor"} />
         <StatCard label="Verified by Auditor" value={data.verifiedCount} valueClassName="text-status-success" />
         <StatCard label="Review Required" value={data.reviewRequiredCount} valueClassName={data.reviewRequiredCount ? "text-status-warning" : ""} />
         <StatCard label="Missing from Checklist" value={data.missingCount} valueClassName={data.missingCount ? "text-status-critical" : "text-status-success"} />
@@ -91,7 +91,7 @@ export default function DocumentsManager({ data }: { data: DocumentsView }) {
                   </span>
                 </td>
                 <td className="px-4 py-3 text-gray-600">{d.docType}</td>
-                <td className="px-4 py-3"><DocumentStatusBadge status={d.status} /></td>
+                <td className="px-4 py-3"><DocumentStatusBadge status={d.status} unsent={d.submittedAt === null} /></td>
                 <td className="px-4 py-3 text-gray-600">{date(d.createdAt)}</td>
                 <td className="px-4 py-3 text-gray-600">{fileSize(d.sizeBytes)}</td>
                 <td className="px-4 py-3">

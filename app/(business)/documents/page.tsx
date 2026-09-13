@@ -18,7 +18,7 @@ export default async function DocumentsPage() {
             <T k="pages.documents.subtitle" />
           </p>
         </div>
-        <SubmitToAuditorButton auditorStatus={dash.auditorStatus} hasFigures={dash.accountingProfit !== null} missingCount={data.missingCount} />
+        <SubmitToAuditorButton auditorStatus={dash.auditorStatus} hasFigures={dash.accountingProfit !== null} missingCount={data.missingCount} unsentCount={data.unsentCount} />
       </div>
       <DocumentsManager data={data} />
     </div>

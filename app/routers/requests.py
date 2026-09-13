@@ -68,10 +68,11 @@ class RequestIn(CamelModel):
 
 class RequestRow(RequestOut):
     company_name: str
+    company_id: str
 
 
 def request_row(r: Request) -> RequestRow:
-    return RequestRow(**RequestOut.model_validate(r).model_dump(), company_name=r.engagement.company.company_name)
+    return RequestRow(**RequestOut.model_validate(r).model_dump(), company_name=r.engagement.company.company_name, company_id=r.engagement.company_id)
 
 
 @router.post("/auditor/engagements/{engagement_id}/requests", response_model=RequestRow, status_code=201)

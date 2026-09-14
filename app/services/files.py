@@ -33,10 +33,12 @@ def ensure_bucket() -> None:
     """Create the private bucket on startup if it doesn't exist (idempotent)."""
     if not _supabase():
         return
+    if httpx.get(f"{settings.SUPABASE_URL}/storage/v1/bucket/{settings.SUPABASE_BUCKET}", headers=_headers(), timeout=20).status_code == 200:
+        return
     r = httpx.post(f"{settings.SUPABASE_URL}/storage/v1/bucket", headers=_headers(),
                    json={"id": settings.SUPABASE_BUCKET, "name": settings.SUPABASE_BUCKET, "public": False,
                          "file_size_limit": settings.MAX_UPLOAD_BYTES}, timeout=20)
-    if r.status_code not in (200, 201, 409):
+    if r.status_code not in (200, 201) and "BucketAlreadyExists" not in r.text:
         raise RuntimeError(f"Supabase Storage bucket check failed: {r.status_code} {r.text[:200]}")
 
 

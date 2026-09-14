@@ -81,6 +81,9 @@ def test_full_engagement_flow(clients):
     assert biz.post("/api/documents", files={"file": ("x.exe", b"MZ", "application/octet-stream")}).status_code == 415
     docs = biz.get("/api/documents").json()
     assert docs["missingCount"] == 4 and docs["checklist"]["items"][0]["providedDocumentId"] == doc_id and docs["unsentCount"] == 1
+    # the auditor's view does not move before submission: no progress, no audit-log trace
+    assert aud.get("/api/auditor/engagements").json()[0]["progressPercent"] == 0
+    assert not any(e["eventType"] == "DOCUMENT_UPLOADED" for e in aud.get("/api/auditor/audit-log").json())
     # private until the handover pack is submitted
     assert aud.get(f"/api/documents/{doc_id}/file").status_code == 404
     assert aud.post(f"/api/auditor/documents/{doc_id}/verify").status_code == 404
@@ -101,6 +104,7 @@ def test_full_engagement_flow(clients):
     assert dash["steps"][1]["progressPercent"] == 100 and dash["auditorStatus"] == "active"
     assert biz.post("/api/handover").status_code == 204
     assert biz.get("/api/dashboard").json()["steps"][2]["progressPercent"] == 100  # stage 3 = handover
+    assert aud.get("/api/auditor/engagements").json()[0]["progressPercent"] > 0
     assert biz.get("/api/documents").json()["unsentCount"] == 0
     assert len(aud.get(f"/api/auditor/engagements/{eng_id}").json()["documents"]) == 1
     assert aud.get(f"/api/documents/{doc_id}/file").status_code == 200
@@ -161,3 +165,32 @@ def test_full_engagement_flow(clients):
     # read-all + logout
     assert biz.post("/api/notifications/read-all").status_code == 204 and unread(biz) == 0
     assert biz.post("/api/auth/logout").status_code == 204 and biz.get("/api/auth/me").status_code == 401
+
+
+def test_cancel_resets_workspace():
+    with TestClient(app) as biz, TestClient(app) as aud:
+        biz.post("/api/auth/register/business", json={"email": "c-biz@x.lk", "password": "password123", "fullName": "Owner", "companyName": "Reset Co"})
+        aud.post("/api/auth/register/auditor", json={"email": "c-aud@x.lk", "password": "password123", "fullName": "A", "firmName": "F"})
+        biz.post("/api/engagement/invite", json={"auditorEmail": "c-aud@x.lk"})
+        eng_id = aud.get("/api/auditor/engagements", params={"status": "invited"}).json()[0]["id"]
+        aud.post(f"/api/auditor/engagements/{eng_id}/accept")
+        aud.put(f"/api/auditor/engagements/{eng_id}/checklist", json={"items": [{"name": "TB", "category": "Trial Balance", "description": "", "required": True}]})
+        biz.post("/api/documents", files={"file": ("tb.pdf", PDF, "application/pdf")})
+        biz.put("/api/financials", json={"revenue": 100, "costOfSales": 10, "operatingExpenses": 10})
+        biz.post("/api/handover")
+        aud.post(f"/api/auditor/engagements/{eng_id}/requests", json={"title": "Q"})
+        # name change via company settings
+        biz.put("/api/company", json={**biz.get("/api/company").json(), "fullName": "New Owner"})
+        assert biz.get("/api/auth/me").json()["user"]["fullName"] == "New Owner"
+
+        assert biz.post("/api/engagement/cancel").status_code == 204
+        assert biz.get("/api/documents").json()["documents"] == [] and biz.get("/api/documents").json()["checklist"]["items"] == []
+        assert biz.get("/api/financials").json()["inputs"] is None
+        assert biz.get("/api/dashboard").json()["progressPercent"] == 0 and biz.get("/api/dashboard").json()["auditorStatus"] == "none"
+        assert biz.get("/api/engagement").json()["engagement"] is None and biz.get("/api/requests").json() == []
+        assert aud.get("/api/auditor/engagements").json() == []
+        assert [e["eventType"] for e in aud.get("/api/auditor/audit-log").json()] == []  # no engagement => no log access
+        assert biz.get("/api/notifications").json()["unreadCount"] == 0
+        # a new invitation starts clean
+        biz.post("/api/engagement/invite", json={"auditorEmail": "c-aud@x.lk"})
+        assert aud.get("/api/auditor/engagements", params={"status": "invited"}).json()[0]["progressPercent"] == 0

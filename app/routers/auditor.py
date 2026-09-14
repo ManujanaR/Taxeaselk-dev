@@ -73,7 +73,7 @@ class EngagementRow(EngagementOut):
 
 def progress_of(eng: Engagement) -> int:
     from app.services.pipeline import pipeline  # local import: pipeline imports models
-    return pipeline(eng.company, eng)["overall_percent"]
+    return pipeline(eng.company, eng, submitted_only=True)["overall_percent"]
 
 
 def row(eng: Engagement) -> EngagementRow:

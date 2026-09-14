@@ -14,9 +14,12 @@ STAGES = [
 ]
 
 
-def pipeline(company: Company, eng: Engagement | None) -> dict:
+def pipeline(company: Company, eng: Engagement | None, submitted_only: bool = False) -> dict:
+    """submitted_only=True is the auditor's view: nothing moves until the client submits the pack."""
     db: Session = object_session(company)
     docs = db.query(Document).filter(Document.company_id == company.id).all()
+    if submitted_only:
+        docs = [d for d in docs if d.submitted_at]
     has_inputs = db.query(FinancialInputs.id).filter(FinancialInputs.company_id == company.id).first() is not None
     approved = bool(eng and eng.status == "approved")
     handed_over = bool(eng and eng.status in ("under_review", "approved"))

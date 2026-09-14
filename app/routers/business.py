@@ -5,7 +5,8 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.deps import current_company, live_engagement
-from app.models import AuditorProfile, AuditorReview, Company, Engagement, User, now
+from app.models import Attachment, AuditLog, AuditorProfile, AuditorReview, Company, Document, Engagement, FinancialInputs, Notification, User, now
+from app.services import files
 from app.schemas.auth import CompanyOut
 from app.schemas.base import CamelModel
 from app.schemas.shared import AuditorSummary, EngagementOut, ReviewIn, ReviewOut
@@ -30,6 +31,7 @@ class CompanyIn(CamelModel):
     contact_phone: str = ""
     registered_address: str = ""
     industry_sector: str = ""
+    full_name: str | None = None  # the signed-in user's display name
 
 
 @router.get("/company", response_model=CompanyOut)
@@ -41,7 +43,11 @@ def get_company(co: Company = Depends(current_company)):
 def update_company(payload: CompanyIn, co: Company = Depends(current_company), db: Session = Depends(get_db)):
     if payload.cit_tax_rate_category not in ("standard_30", "sme_14"):
         raise HTTPException(422, "Invalid CIT rate category")
-    for k, v in payload.model_dump().items():
+    data = payload.model_dump()
+    full_name = (data.pop("full_name") or "").strip()
+    if full_name:
+        co.user.full_name = full_name
+    for k, v in data.items():
         setattr(co, k, v)
     log(db, co.id, co.user_id, "COMPANY_UPDATED", "Company profile updated.")
     eng = live_engagement(db, co.id)
@@ -121,9 +127,21 @@ def cancel_engagement(co: Company = Depends(current_company), db: Session = Depe
     eng = live_engagement(db, co.id)
     if not eng:
         raise HTTPException(404, "No active engagement")
-    eng.status = "terminated"
+    # Clean slate: everything shared with this auditor is deleted so a new engagement starts fresh.
     notify(db, auditor_user_id(eng), "Engagement cancelled", f"{co.company_name} cancelled the engagement.", "/companies", "warning")
-    log(db, co.id, co.user_id, "ENGAGEMENT_CANCELLED", "Engagement with auditor cancelled.", "warning")
+    touch(db, auditor_user_id(eng))
+    for a in db.query(Attachment).filter(Attachment.company_id == co.id):
+        files.delete_stored(a.stored_name)
+    for d in db.query(Document).filter(Document.company_id == co.id):
+        files.delete_stored(d.stored_name)
+    db.query(Attachment).filter(Attachment.company_id == co.id).delete(synchronize_session=False)
+    db.query(Document).filter(Document.company_id == co.id).delete(synchronize_session=False)
+    db.query(FinancialInputs).filter(FinancialInputs.company_id == co.id).delete(synchronize_session=False)
+    db.query(AuditLog).filter(AuditLog.company_id == co.id).delete(synchronize_session=False)
+    db.query(Notification).filter(Notification.user_id == co.user_id).delete(synchronize_session=False)
+    db.delete(eng)  # cascades checklist, requests, responses, threads, messages, review
+    db.flush()
+    log(db, co.id, co.user_id, "ENGAGEMENT_CANCELLED", "Engagement cancelled; documents, figures, requests and discussions were reset.", "warning")
     db.commit()
 
 

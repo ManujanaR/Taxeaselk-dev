@@ -110,8 +110,8 @@ async def upload_document(file: UploadFile = File(...), doc_type: str = Form("Ge
     doc = Document(company_id=co.id, uploaded_by=co.user_id, checklist_item_id=item.id if item else None, name=file.filename,
                    stored_name=stored, size_bytes=size, content_type=ctype, doc_type=doc_type, submitted_at=now() if pack_sent else None)
     db.add(doc)
-    log(db, co.id, co.user_id, "DOCUMENT_UPLOADED", f"Uploaded {file.filename} ({doc_type}).", "success")
-    if pack_sent:
+    if pack_sent:  # private until the pack is submitted: no trail the auditor could see
+        log(db, co.id, co.user_id, "DOCUMENT_UPLOADED", f"Uploaded {file.filename} ({doc_type}).", "success")
         notify(db, auditor_user_id(eng), "Client uploaded a document", f"{co.company_name} uploaded {file.filename}.",
                f"/companies/{eng.id}?tab=documents")
     db.commit()
@@ -127,10 +127,11 @@ def delete_document(document_id: str, co: Company = Depends(current_company), db
     if doc.status == "verified":
         raise HTTPException(409, "Verified documents cannot be deleted")
     files.delete_stored(doc.stored_name)
-    log(db, co.id, co.user_id, "DOCUMENT_DELETED", f"Deleted {doc.name}.", "warning")
     eng = live_engagement(db, co.id)
-    if doc.submitted_at and eng and eng.status != "invited":
-        touch(db, auditor_user_id(eng))
+    if doc.submitted_at:
+        log(db, co.id, co.user_id, "DOCUMENT_DELETED", f"Deleted {doc.name}.", "warning")
+        if eng and eng.status != "invited":
+            touch(db, auditor_user_id(eng))
     db.delete(doc)
     db.commit()
 

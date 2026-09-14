@@ -29,10 +29,14 @@ def require_role(role: str):
 
 
 def current_company(user: User = Depends(require_role("business"))) -> Company:
+    if not user.company:
+        raise HTTPException(409, "This account has no company profile. Contact support.")
     return user.company
 
 
 def current_auditor(user: User = Depends(require_role("auditor"))) -> AuditorProfile:
+    if not user.auditor_profile:
+        raise HTTPException(409, "This account has no auditor profile. Contact support.")
     return user.auditor_profile
 
 

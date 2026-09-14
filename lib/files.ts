@@ -9,6 +9,7 @@ export function validateFiles(files: FileList | File[]): { valid: File[]; reject
   Array.from(files).forEach((file) => {
     const ext = "." + (file.name.split(".").pop()?.toLowerCase() ?? "");
     if (!ACCEPTED_EXTENSIONS.includes(ext)) rejected.push({ fileName: file.name, reason: `Unsupported type (${ext}). Use PDF, XLSX, XLS, CSV, PNG or JPG.` });
+    else if (file.size === 0) rejected.push({ fileName: file.name, reason: "File is empty (0 bytes)." });
     else if (file.size > MAX_FILE_SIZE_BYTES) rejected.push({ fileName: file.name, reason: `Too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Max 10 MB.` });
     else valid.push(file);
   });

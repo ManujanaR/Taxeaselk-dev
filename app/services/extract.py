@@ -46,11 +46,11 @@ class CitExtraction(BaseModel):
     notes: str = ""
 
 
-def _spreadsheet_text(path: Path) -> str:
-    if path.suffix.lower() == ".csv":
-        return path.read_text(errors="ignore")[:MAX_TEXT_CHARS]
+def _spreadsheet_text(data: bytes, ext: str) -> str:
+    if ext == ".csv":
+        return data.decode(errors="ignore")[:MAX_TEXT_CHARS]
     import openpyxl  # xlsx only; legacy .xls is not supported by openpyxl
-    wb = openpyxl.load_workbook(path, read_only=True, data_only=True)
+    wb = openpyxl.load_workbook(io.BytesIO(data), read_only=True, data_only=True)
     out = io.StringIO()
     w = csv.writer(out)
     for ws in wb.worksheets:
@@ -69,14 +69,13 @@ def extract_cit_inputs(doc: Document) -> dict:
     from google import genai
     from google.genai import types
 
-    path = settings.UPLOAD_DIR / doc.stored_name
-    if not path.is_file():
-        raise HTTPException(404, "File missing from storage")
-    ext = path.suffix.lower()
+    from app.services import files
+    data = files.read_bytes(doc.stored_name)
+    ext = Path(doc.stored_name).suffix.lower()
     if ext in (".pdf", ".png", ".jpg", ".jpeg"):
-        parts = [types.Part.from_bytes(data=path.read_bytes(), mime_type=doc.content_type), PROMPT]
+        parts = [types.Part.from_bytes(data=data, mime_type=doc.content_type), PROMPT]
     elif ext in (".xlsx", ".csv"):
-        parts = [f"Document '{doc.name}' as CSV rows:\n{_spreadsheet_text(path)}", PROMPT]
+        parts = [f"Document '{doc.name}' as CSV rows:\n{_spreadsheet_text(data, ext)}", PROMPT]
     else:
         raise HTTPException(415, "Extraction supports PDF, XLSX, CSV, PNG and JPG")
 

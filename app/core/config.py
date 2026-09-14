@@ -21,6 +21,11 @@ class Settings(BaseSettings):
     GEMINI_API_KEY: str = ""  # optional; extraction endpoint returns 503 when unset
     GEMINI_MODEL: str = "gemini-3.8-flash"
 
+    # Optional: store uploads in Supabase Storage instead of UPLOAD_DIR
+    SUPABASE_URL: str = ""
+    SUPABASE_SERVICE_KEY: str = ""
+    SUPABASE_BUCKET: str = "taxease-files"
+
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440
     UPLOAD_DIR: Path = Path("uploads")
     MAX_UPLOAD_BYTES: int = 10 * 1024 * 1024

@@ -9,7 +9,7 @@ from app.core.config import settings
 from app.core.database import engine
 from app.models import Base
 from app.routers import ROUTERS
-from app.services import events
+from app.services import events, files
 
 
 @asynccontextmanager
@@ -18,6 +18,7 @@ async def lifespan(_: FastAPI):
     settings.UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
     Base.metadata.create_all(bind=engine)
     _add_missing_columns()
+    files.ensure_bucket()
     yield
 
 

@@ -30,7 +30,10 @@ Tables are created on first boot. Swagger UI is at `/docs` when `DEBUG=true`.
    DATABASE_URL=postgresql+psycopg2://postgres.<ref>:<password>@aws-0-<region>.pooler.supabase.com:5432/postgres?sslmode=require
    SECRET_KEY=<64 hex chars, same value as JWT_SECRET in the frontend>
    GEMINI_API_KEY=<optional; enables /api/financials/extract>
-   UPLOAD_DIR=/var/lib/taxease/uploads
+   UPLOAD_DIR=/var/lib/taxease/uploads      # or, to keep files in Supabase Storage (private bucket, created on boot):
+   SUPABASE_URL=https://<ref>.supabase.co
+   SUPABASE_SERVICE_KEY=<service_role key>
+   SUPABASE_BUCKET=taxease-files
    ```
 4. `uvicorn app.main:app --host 127.0.0.1 --port 8000` (single worker, see Realtime) behind the Next.js app (it proxies `/api/*`). `DEBUG=false` makes the session cookie `Secure`, so the frontend must be served over HTTPS.
 

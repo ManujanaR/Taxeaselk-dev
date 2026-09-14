@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Building2, CheckCircle2, ClipboardList, Download, FileText, Flag, Inbox, MessagesSquare, Paperclip, ShieldCheck } from "lucide-react";
+import { ArrowLeft, Building2, CheckCircle2, ClipboardList, Download, FileText, Flag, Paperclip, ShieldCheck } from "lucide-react";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
@@ -64,8 +64,6 @@ export default function CompanyWorkspace({ detail: d, initialTab }: { detail: En
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Link href={`/requests?company=${eng.companyId}`}><Button variant="secondary" icon={<Inbox className="h-4 w-4" />}>Requests{openRequests.length ? ` (${openRequests.length} open)` : ""}</Button></Link>
-          <Link href="/auditor-discussions"><Button variant="secondary" icon={<MessagesSquare className="h-4 w-4" />}>Discussions</Button></Link>
           {eng.status === "under_review" && (
             <Button variant="success" icon={<ShieldCheck className="h-4 w-4" />} disabled={busy || openRequests.length > 0} title={openRequests.length ? `${openRequests.length} open request(s) must be resolved first` : undefined}
               onClick={() => confirm(`Sign off the CIT return for ${eng.companyName} (${eng.taxYear})? This is final.`) && run(() => approveEngagement(eng.id), "Audit signed off.")}>
@@ -104,8 +102,8 @@ export default function CompanyWorkspace({ detail: d, initialTab }: { detail: En
                 <ul className="mt-4 space-y-1.5 text-sm text-gray-600">
                   <li className="flex justify-between"><span>Documents submitted</span><span className="font-medium text-gray-800">{d.documents.length}</span></li>
                   <li className="flex justify-between"><span>Verified</span><span className="font-medium text-gray-800">{eng.verifiedCount} / {eng.documentsCount}</span></li>
-                  <li className="flex justify-between"><span>Open requests</span><Link href={`/requests?company=${eng.companyId}`} className={`font-medium hover:underline ${openRequests.length ? "text-status-warning" : "text-gray-800"}`}>{openRequests.length}</Link></li>
-                  <li className="flex justify-between"><span>Answers to review</span><Link href={`/requests?company=${eng.companyId}&status=responded`} className={`font-medium hover:underline ${eng.needsReview ? "text-brand-blue" : "text-gray-800"}`}>{eng.needsReview}</Link></li>
+                  <li className="flex justify-between"><span>Open requests</span><span className={`font-medium ${openRequests.length ? "text-status-warning" : "text-gray-800"}`}>{openRequests.length}</span></li>
+                  <li className="flex justify-between"><span>Answers to review</span><span className={`font-medium ${eng.needsReview ? "text-brand-blue" : "text-gray-800"}`}>{eng.needsReview}</span></li>
                 </ul>
               </Card>
               <Card className="p-5">

@@ -113,7 +113,7 @@ export default function AssignedAuditorCard({ view }: { view: EngagementView }) 
           <Card className="w-full max-w-md p-6">
             <h3 className="text-base font-bold text-gray-900">{pending ? "Cancel invitation?" : "Cancel engagement?"}</h3>
             <p className="mt-2 text-sm text-gray-600">
-              {pending ? "The auditor will no longer be able to accept this invitation." : "Your auditor loses access to your documents and open issues stay unresolved. You will need to invite an auditor again."}
+              {pending ? "The auditor will no longer be able to accept this invitation." : "This resets your workspace: every document, your CIT figures, the checklist, all requests and discussions with this auditor are permanently deleted. You start from a clean slate when you invite the next auditor."}
             </p>
             <div className="mt-5 flex justify-end gap-2">
               <Button variant="secondary" onClick={() => setConfirmCancel(false)} disabled={busy}>

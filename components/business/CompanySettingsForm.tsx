@@ -10,10 +10,11 @@ import { errorMessage, toast } from "@/lib/toast";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import type { Company } from "@/lib/types";
 
-export default function CompanySettingsForm({ initial }: { initial: Company }) {
+export default function CompanySettingsForm({ initial, fullName }: { initial: Company; fullName: string }) {
   const { t } = useLanguage();
   const router = useRouter();
   const [form, setForm] = useState<Company>(initial);
+  const [name, setName] = useState(fullName);
   const [saving, setSaving] = useState(false);
 
   function update<K extends keyof Company>(key: K, value: Company[K]) {
@@ -25,7 +26,7 @@ export default function CompanySettingsForm({ initial }: { initial: Company }) {
     setSaving(true);
     try {
       const { id: _, ...payload } = form;
-      setForm(await updateCompany(payload));
+      setForm(await updateCompany({ ...payload, fullName: name }));
       toast.success("Company profile saved.");
       router.refresh(); // top-bar badges read the company from the session
     } catch (err) {
@@ -99,6 +100,10 @@ export default function CompanySettingsForm({ initial }: { initial: Company }) {
       <div className="border-t border-gray-100 pt-6">
         <h3 className="mb-3 text-xs font-bold uppercase tracking-wider text-gray-400">3. Registered Office &amp; Tax Correspondence</h3>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <Field label="Your name (account holder)" required>
+            <Input value={name} onChange={(e) => setName(e.target.value)} required autoComplete="name" />
+          </Field>
+          <div className="hidden md:block" />
           <Field label="Official contact email">
             <Input type="email" value={form.contactEmail} onChange={(e) => update("contactEmail", e.target.value)} />
           </Field>

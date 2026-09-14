@@ -19,12 +19,17 @@ const FIELDS: [keyof Omit<FinancialInputs, "sourceDocumentId">, string, string][
   ["taxDepreciationAllowances", "Capital Allowances", "Fourth Schedule tax depreciation"],
 ];
 
-const EMPTY: FinancialInputs = { revenue: 0, costOfSales: 0, operatingExpenses: 0, accountingDepreciation: 0, entertainmentExpenses: 0, taxDepreciationAllowances: 0, sourceDocumentId: null };
+type Draft = Record<keyof Omit<FinancialInputs, "sourceDocumentId">, string> & { sourceDocumentId: string | null };
+const toDraft = (v: FinancialInputs | null): Draft => ({
+  revenue: v ? String(v.revenue) : "", costOfSales: v ? String(v.costOfSales) : "", operatingExpenses: v ? String(v.operatingExpenses) : "",
+  accountingDepreciation: v ? String(v.accountingDepreciation) : "", entertainmentExpenses: v ? String(v.entertainmentExpenses) : "",
+  taxDepreciationAllowances: v ? String(v.taxDepreciationAllowances) : "", sourceDocumentId: v?.sourceDocumentId ?? null,
+});
 
 // The six CIT inputs. "Extract" asks Gemini to read an uploaded statement and prefill; the user confirms and saves.
 export default function FinancialInputsForm({ initial, documents }: { initial: FinancialInputs | null; documents: StatutoryDocument[] }) {
   const router = useRouter();
-  const [form, setForm] = useState<FinancialInputs>(initial ?? EMPTY);
+  const [form, setForm] = useState<Draft>(toDraft(initial));
   const [confidence, setConfidence] = useState<Partial<Record<string, number>>>({});
   const [notes, setNotes] = useState("");
   const [docId, setDocId] = useState(initial?.sourceDocumentId ?? documents[0]?.id ?? "");
@@ -38,7 +43,7 @@ export default function FinancialInputsForm({ initial, documents }: { initial: F
       const r = await extractFinancials(docId);
       setForm((f) => {
         const next = { ...f, sourceDocumentId: docId };
-        for (const [k] of FIELDS) if (r.inputs[k] != null) next[k] = r.inputs[k] as number;
+        for (const [k] of FIELDS) if (r.inputs[k] != null) next[k] = String(r.inputs[k]);
         return next;
       });
       setConfidence(r.confidence);
@@ -56,7 +61,8 @@ export default function FinancialInputsForm({ initial, documents }: { initial: F
     e.preventDefault();
     setSaving(true);
     try {
-      await saveFinancials(form);
+      const payload = Object.fromEntries(FIELDS.map(([k]) => [k, Number(form[k] || 0)])) as unknown as FinancialInputs;
+      await saveFinancials({ ...payload, sourceDocumentId: form.sourceDocumentId });
       toast.success("Figures saved. CIT computation updated.");
       setConfidence({});
       router.refresh();
@@ -90,7 +96,7 @@ export default function FinancialInputsForm({ initial, documents }: { initial: F
             const conf = confidence[key];
             return (
               <Field key={key} label={label}>
-                <Input type="number" min={0} step="1" value={form[key]} onChange={(e) => setForm({ ...form, [key]: Number(e.target.value) })} />
+                <Input type="number" min={0} step="1" inputMode="numeric" placeholder="0" value={form[key]} onChange={(e) => setForm({ ...form, [key]: e.target.value })} />
                 <p className="mt-1 flex items-center justify-between text-[11px] text-gray-400">
                   <span>{hint}</span>
                   {conf !== undefined && (

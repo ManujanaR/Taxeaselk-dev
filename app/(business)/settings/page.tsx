@@ -3,10 +3,11 @@ import CompanySettingsForm from "@/components/business/CompanySettingsForm";
 import ChangePasswordForm from "@/components/ChangePasswordForm";
 import T from "@/components/layout/T";
 import { apiServer } from "@/lib/api/server";
+import { getSession } from "@/lib/auth";
 import type { Company } from "@/lib/types";
 
 export default async function BusinessSettingsPage() {
-  const company = await apiServer<Company>("/api/company");
+  const [company, session] = await Promise.all([apiServer<Company>("/api/company"), getSession("business")]);
 
   return (
     <div className="space-y-6">
@@ -19,7 +20,7 @@ export default async function BusinessSettingsPage() {
         </p>
       </div>
       <Card className="p-6">
-        <CompanySettingsForm initial={company} />
+        <CompanySettingsForm initial={company} fullName={session.user.fullName} />
       </Card>
       <ChangePasswordForm />
     </div>

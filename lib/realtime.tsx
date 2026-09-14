@@ -66,7 +66,7 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
       fetch("/api/auth/me", { cache: "no-store" }).then((r) => {
         if (r.status === 401) {
           es.close();
-          window.location.href = "/sign-in";
+          window.location.href = "/sign-in?reset=1";
         }
       }).catch(() => {});
     };

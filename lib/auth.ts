@@ -18,7 +18,7 @@ export async function getSession(role: "business" | "auditor"): Promise<Session>
   try {
     session = await apiServer<Session>("/api/auth/me");
   } catch {
-    redirect("/sign-in");
+    redirect("/sign-in?reset=1");
   }
   if (session.user.role !== role) redirect(session.user.role === "auditor" ? "/auditor-dashboard" : "/dashboard");
   return session;

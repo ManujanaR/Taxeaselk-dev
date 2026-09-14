@@ -11,7 +11,7 @@ export async function api<T = unknown>(path: string, init: ReqInit = {}): Promis
     return await request<T>(path, init);
   } catch (e) {
     if (e instanceof ApiError && e.status === 401 && !path.startsWith("/api/auth/")) {
-      window.location.href = "/sign-in";
+      window.location.href = "/sign-in?reset=1";
     }
     throw e;
   }

@@ -11,6 +11,12 @@ const startsWithAny = (path: string, prefixes: string[]) => prefixes.some((p) =>
 // First line of defence only: redirects by cookie role. The backend re-verifies every request.
 export async function middleware(req: NextRequest) {
   const path = req.nextUrl.pathname;
+  if (path === "/sign-in" && req.nextUrl.searchParams.get("reset") === "1") {
+    // The backend rejected a well-signed cookie (e.g. the user no longer exists): drop it and show sign-in.
+    const res = NextResponse.redirect(new URL("/sign-in", req.url));
+    res.cookies.delete("taxease_session");
+    return res;
+  }
   const token = req.cookies.get("taxease_session")?.value;
   let role: string | null = null;
   if (token) {

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { ChevronDown, Settings, LogOut, Copy, Check } from "lucide-react";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { api } from "@/lib/api/client";
+import { copyText } from "@/lib/format";
 import { useRealtime } from "@/lib/realtime";
 
 interface ProfileMenuProps {
@@ -65,11 +66,12 @@ export default function ProfileMenu({ displayName, email, userInitials, userId, 
                 <span className="truncate font-mono text-[10px] font-bold text-gray-700">{userId}</span>
                 <button
                   type="button"
-                  onClick={(e) => {
+                  onClick={async (e) => {
                     e.stopPropagation();
-                    navigator.clipboard.writeText(userId);
-                    setCopied(true);
-                    setTimeout(() => setCopied(false), 1800);
+                    if (await copyText(userId)) {
+                      setCopied(true);
+                      setTimeout(() => setCopied(false), 1800);
+                    }
                   }}
                   title="Copy User ID"
                   className="flex cursor-pointer items-center gap-0.5 text-[10px] font-semibold text-brand-blue hover:text-blue-700"

@@ -73,6 +73,10 @@ export interface AuditorSummary {
   totalReviews: number;
 }
 
+export interface DirectoryAuditor extends AuditorSummary {
+  completedAudits: number;
+}
+
 export interface Review {
   id: string;
   rating: number;

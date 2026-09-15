@@ -1,5 +1,5 @@
 import { api } from "./client";
-import type { Company, DocumentsView, EngagementView, ExtractResult, FinancialInputs, FinancialsView, Review, RfiRequest, RfiResponse, StatutoryDocument, Engagement } from "@/lib/types";
+import type { Company, DirectoryAuditor, DocumentsView, EngagementView, ExtractResult, FinancialInputs, FinancialsView, Review, RfiRequest, RfiResponse, StatutoryDocument, Engagement } from "@/lib/types";
 
 export const getCompany = () => api<Company>("/api/company");
 export const updateCompany = (payload: Omit<Company, "id"> & { fullName?: string }) => api<Company>("/api/company", { method: "PUT", json: payload });
@@ -7,6 +7,7 @@ export const updateCompany = (payload: Omit<Company, "id"> & { fullName?: string
 export const getEngagement = () => api<EngagementView>("/api/engagement");
 export const inviteAuditor = (payload: { auditorEmail: string; taxYear: string; message?: string }) =>
   api<Engagement>("/api/engagement/invite", { method: "POST", json: payload });
+export const getAuditorDirectory = (search = "") => api<DirectoryAuditor[]>(`/api/auditors/directory${search ? `?search=${encodeURIComponent(search)}` : ""}`);
 export const cancelEngagement = () => api<void>("/api/engagement/cancel", { method: "POST" });
 export const rateAuditor = (payload: Omit<Review, "id" | "createdAt">) => api<Review>("/api/engagement/review", { method: "POST", json: payload });
 

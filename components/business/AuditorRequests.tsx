@@ -16,6 +16,7 @@ const STATUS: Record<RfiRequest["status"], { label: string; tone: BadgeTone }> =
   responded: { label: "Awaiting auditor review", tone: "info" },
   revision_requested: { label: "Revision requested", tone: "critical" },
   resolved: { label: "Resolved", tone: "success" },
+  dismissed: { label: "Withdrawn by auditor", tone: "neutral" },
 };
 const PRIORITY: Record<RfiRequest["priority"], BadgeTone> = { HIGH: "critical", MEDIUM: "warning", LOW: "info" };
 

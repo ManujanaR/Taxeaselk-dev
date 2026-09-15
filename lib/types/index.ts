@@ -134,8 +134,8 @@ export interface DocumentsView {
   checklist: { auditorName: string | null; auditorFirm: string | null; items: ChecklistItem[] };
 }
 
-export type RequestStatus = "pending" | "responded" | "resolved" | "revision_requested";
-export type ResponseStatus = "unreviewed" | "resolved" | "revision_requested";
+export type RequestStatus = "pending" | "responded" | "resolved" | "revision_requested" | "dismissed";
+export type ResponseStatus = "unreviewed" | "resolved" | "revision_requested" | "dismissed";
 
 export interface RfiResponse {
   id: string;

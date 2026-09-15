@@ -23,5 +23,6 @@ export const createRequest = (engagementId: string, payload: NewRequest) => api<
 export const remindRequest = (id: string) => api<void>(`/api/auditor/requests/${id}/remind`, { method: "POST" });
 export const resolveRequest = (id: string) => api<RequestRow>(`/api/auditor/requests/${id}/resolve`, { method: "POST" });
 export const requestRevision = (id: string, note: string) => api<RequestRow>(`/api/auditor/requests/${id}/revision`, { method: "POST", json: { note } });
+export const dismissRequest = (id: string) => api<RequestRow>(`/api/auditor/requests/${id}/dismiss`, { method: "POST" });
 
 export const getAuditLog = (companyId?: string) => api<AuditLogEntry[]>(`/api/auditor/audit-log${companyId ? `?companyId=${companyId}` : ""}`);

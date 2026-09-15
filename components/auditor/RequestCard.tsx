@@ -2,11 +2,11 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Bell, Building2, CheckCircle2, Download, RotateCcw, X } from "lucide-react";
+import { Bell, Building2, CheckCircle2, Download, RotateCcw, Trash2, X } from "lucide-react";
 import Card from "@/components/ui/Card";
 import Badge, { BadgeTone } from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
-import { remindRequest, requestRevision, resolveRequest } from "@/lib/api/auditor";
+import { dismissRequest, remindRequest, requestRevision, resolveRequest } from "@/lib/api/auditor";
 import { date, dateTime, daysUntil, fileSize } from "@/lib/format";
 import { errorMessage, toast } from "@/lib/toast";
 import type { RfiRequest } from "@/lib/types";
@@ -16,6 +16,7 @@ export const REQUEST_STATUS: Record<RfiRequest["status"], { label: string; tone:
   responded: { label: "Needs your review", tone: "info" },
   revision_requested: { label: "Revision requested", tone: "critical" },
   resolved: { label: "Resolved", tone: "success" },
+  dismissed: { label: "Dismissed", tone: "neutral" },
 };
 export const PRIORITY_TONE: Record<RfiRequest["priority"], BadgeTone> = { HIGH: "critical", MEDIUM: "warning", LOW: "info" };
 
@@ -27,6 +28,7 @@ export default function RequestCard({ request: r, companyName, companyHref, onCh
   const [busy, setBusy] = useState(false);
   const days = daysUntil(r.dueDate);
   const waiting = r.status === "pending" || r.status === "revision_requested";
+  const open = r.status !== "resolved" && r.status !== "dismissed";
 
   async function act(fn: () => Promise<unknown>, ok: string) {
     setBusy(true);
@@ -74,6 +76,7 @@ export default function RequestCard({ request: r, companyName, companyHref, onCh
             </>
           )}
           {waiting && <Button variant="secondary" className="px-3 py-1.5 text-xs" icon={<Bell className="h-3.5 w-3.5" />} disabled={busy} onClick={() => act(() => remindRequest(r.id), "Reminder sent to the client.")}>Remind</Button>}
+          {open && <Button variant="secondary" className="px-3 py-1.5 text-xs text-gray-500" icon={<Trash2 className="h-3.5 w-3.5" />} disabled={busy} onClick={() => confirm(`Dismiss ${r.referenceCode}? The client will be told it is no longer needed.`) && act(() => dismissRequest(r.id), `${r.referenceCode} dismissed.`)}>Dismiss</Button>}
         </div>
       </div>
 

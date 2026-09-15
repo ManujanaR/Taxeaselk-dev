@@ -2,13 +2,14 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Trash2, Download, FileText } from "lucide-react";
+import { Trash2, Download, FileText, RefreshCw } from "lucide-react";
 import Card from "@/components/ui/Card";
 import StatCard from "@/components/ui/StatCard";
 import DocumentUploadZone from "./DocumentUploadZone";
 import DocumentStatusBadge from "./DocumentStatusBadge";
 import AuditorDocumentChecklist from "./AuditorDocumentChecklist";
-import { deleteDocument, uploadDocument } from "@/lib/api/business";
+import { deleteDocument, replaceDocument, uploadDocument } from "@/lib/api/business";
+import { validateFiles, ACCEPT_ATTR } from "@/lib/files";
 import { date, fileSize } from "@/lib/format";
 import { errorMessage, toast } from "@/lib/toast";
 import type { ChecklistItem, DocumentsView } from "@/lib/types";
@@ -18,6 +19,26 @@ export default function DocumentsManager({ data }: { data: DocumentsView }) {
   const [target, setTarget] = useState<ChecklistItem | null>(null);
   const [uploading, setUploading] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const replaceInputRef = useRef<HTMLInputElement>(null);
+  const [replacingId, setReplacingId] = useState<string | null>(null);
+
+  async function onReplacePicked(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    const id = replacingId;
+    if (!file || !id) return;
+    const { valid, rejected } = validateFiles([file]);
+    if (rejected.length) return toast.error(rejected[0].reason);
+    try {
+      await replaceDocument(id, valid[0]);
+      toast.success(`Replaced with ${file.name}. Your auditor will re-check it.`);
+      router.refresh();
+    } catch (err) {
+      toast.error(errorMessage(err));
+    } finally {
+      setReplacingId(null);
+    }
+  }
 
   async function onFilesAccepted(files: File[]) {
     setUploading((u) => [...u, ...files.map((f) => f.name)]);
@@ -99,6 +120,11 @@ export default function DocumentsManager({ data }: { data: DocumentsView }) {
                     <a href={`/api/documents/${d.id}/file`} title="Download" className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700">
                       <Download className="h-4 w-4" />
                     </a>
+                    {d.status === "review_required" && (
+                      <button onClick={() => { setReplacingId(d.id); replaceInputRef.current?.click(); }} title="Replace with a corrected file" className="rounded-lg p-1.5 text-gray-400 hover:bg-blue-50 hover:text-brand-blue">
+                        <RefreshCw className="h-4 w-4" />
+                      </button>
+                    )}
                     {d.status !== "verified" && (
                       <button onClick={() => remove(d.id, d.name)} title="Delete" className="rounded-lg p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600">
                         <Trash2 className="h-4 w-4" />
@@ -116,6 +142,7 @@ export default function DocumentsManager({ data }: { data: DocumentsView }) {
           </tbody>
         </table>
       </Card>
+      <input ref={replaceInputRef} type="file" className="hidden" accept={ACCEPT_ATTR} onChange={onReplacePicked} />
     </>
   );
 }

@@ -19,6 +19,11 @@ export const uploadDocument = (file: File, docType: string, checklistItemId?: st
   return api<StatutoryDocument>("/api/documents", { method: "POST", body });
 };
 export const deleteDocument = (id: string) => api<void>(`/api/documents/${id}`, { method: "DELETE" });
+export const replaceDocument = (id: string, file: File) => {
+  const body = new FormData();
+  body.append("file", file);
+  return api<StatutoryDocument>(`/api/documents/${id}/replace`, { method: "POST", body });
+};
 
 export const getFinancials = () => api<FinancialsView>("/api/financials");
 export const saveFinancials = (payload: FinancialInputs) => api<FinancialsView>("/api/financials", { method: "PUT", json: payload });

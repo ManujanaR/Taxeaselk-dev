@@ -26,7 +26,9 @@ export default function CompanyWorkspace({ detail: d, initialTab }: { detail: En
   const [busy, setBusy] = useState(false);
   const eng = d.engagement;
   const canWork = eng.status === "active" || eng.status === "under_review";
-  const openRequests = d.requests.filter((r) => r.status !== "resolved");
+  const openRequests = d.requests.filter((r) => r.status !== "resolved" && r.status !== "dismissed");
+  const unverified = d.documents.filter((doc) => doc.status !== "verified");
+  const signOffBlock = openRequests.length ? `${openRequests.length} open request(s) to resolve or dismiss` : unverified.length ? `${unverified.length} document(s) still to verify` : "";
   const provided = d.checklist.filter((c) => c.providedDocumentId).length;
   const evidence = d.requests.flatMap((r) => (r.response?.attachments ?? []).map((a) => ({ ...a, request: r })));
 
@@ -65,7 +67,7 @@ export default function CompanyWorkspace({ detail: d, initialTab }: { detail: En
         </div>
         <div className="flex items-center gap-2">
           {eng.status === "under_review" && (
-            <Button variant="success" icon={<ShieldCheck className="h-4 w-4" />} disabled={busy || openRequests.length > 0} title={openRequests.length ? `${openRequests.length} open request(s) must be resolved first` : undefined}
+            <Button variant="success" icon={<ShieldCheck className="h-4 w-4" />} disabled={busy || signOffBlock !== ""} title={signOffBlock || undefined}
               onClick={() => confirm(`Sign off the CIT return for ${eng.companyName} (${eng.taxYear})? This is final.`) && run(() => approveEngagement(eng.id), "Audit signed off.")}>
               Approve &amp; Sign Off
             </Button>

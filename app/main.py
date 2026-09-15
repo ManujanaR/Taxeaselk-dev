@@ -1,9 +1,11 @@
 import asyncio
+import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import inspect, text
+from sqlalchemy.exc import OperationalError
 
 from app.core.config import settings
 from app.core.database import engine
@@ -16,8 +18,13 @@ from app.services import events, files
 async def lifespan(_: FastAPI):
     events.loop = asyncio.get_running_loop()
     settings.UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
-    Base.metadata.create_all(bind=engine)
-    _add_missing_columns()
+    # DB may be briefly unreachable (pooler blip). Boot anyway so the app serves clear per-request
+    # errors instead of crash-looping — a restart loop just hammers the pooler and delays recovery.
+    try:
+        Base.metadata.create_all(bind=engine)
+        _add_missing_columns()
+    except OperationalError as e:
+        logging.getLogger("uvicorn.error").error("DB init skipped, backend up but degraded: %s", str(e).splitlines()[0])
     files.ensure_bucket()
     yield
 

@@ -9,7 +9,7 @@ export const LANGUAGE_LABELS: Record<Language, string> = {
   ta: "தமி",
 };
 
-export const translations = {
+const base = {
   "en": {
     "common.search": "Search",
     "common.notifications": "Notifications",
@@ -961,6 +961,21 @@ export const translations = {
     "business.issues.submitResponse": "பதிலைச் சமர்ப்பிக்கவும்",
     "business.issues.submitting": "சமர்ப்பிக்கப்படுகிறது..."
   }
+} as const;
+
+// Per-screen-group key files (extracted during the full si/ta sweep) are merged in here.
+// Each group owns a disjoint set of components and its own keys file, so they never collide.
+import { authKeys } from "./keys/auth";
+import { bizPageKeys } from "./keys/biz-pages";
+import { bizComponentKeys } from "./keys/biz-components";
+import { auditorPageKeys } from "./keys/auditor-pages";
+import { auditorComponentKeys } from "./keys/auditor-components";
+import { sharedKeys } from "./keys/shared";
+
+export const translations = {
+  en: { ...base.en, ...authKeys.en, ...bizPageKeys.en, ...bizComponentKeys.en, ...auditorPageKeys.en, ...auditorComponentKeys.en, ...sharedKeys.en },
+  si: { ...base.si, ...authKeys.si, ...bizPageKeys.si, ...bizComponentKeys.si, ...auditorPageKeys.si, ...auditorComponentKeys.si, ...sharedKeys.si },
+  ta: { ...base.ta, ...authKeys.ta, ...bizPageKeys.ta, ...bizComponentKeys.ta, ...auditorPageKeys.ta, ...auditorComponentKeys.ta, ...sharedKeys.ta },
 } as const satisfies Record<Language, Record<string, string>>;
 
 export type TranslationKey = keyof (typeof translations)["en"];

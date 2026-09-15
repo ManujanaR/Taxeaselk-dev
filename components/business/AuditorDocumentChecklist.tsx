@@ -3,10 +3,12 @@
 import { CheckCircle2, Circle, ClipboardList, Upload } from "lucide-react";
 import Card from "@/components/ui/Card";
 import ProgressBar from "@/components/ui/ProgressBar";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
 import type { ChecklistItem, DocumentsView } from "@/lib/types";
 
 // The document list published by the assigned auditor; each missing item opens the upload dialog for it.
 export default function AuditorDocumentChecklist({ checklist, onPickItem }: { checklist: DocumentsView["checklist"]; onPickItem: (item: ChecklistItem) => void }) {
+  const { t } = useLanguage();
   const { items, auditorName, auditorFirm } = checklist;
   const required = items.filter((i) => i.required);
   const provided = required.filter((i) => i.providedDocumentId).length;
@@ -19,18 +21,18 @@ export default function AuditorDocumentChecklist({ checklist, onPickItem }: { ch
           <ClipboardList className="h-5 w-5" />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="font-semibold text-gray-800">Auditor Document Checklist</p>
-          <p className="truncate text-xs text-gray-500">{auditorName ? `Requested by ${auditorName} · ${auditorFirm}` : "Published by your auditor once they accept your invitation"}</p>
+          <p className="font-semibold text-gray-800">{t("bizcomp.auditorDocumentChecklist.title")}</p>
+          <p className="truncate text-xs text-gray-500">{auditorName ? t("bizcomp.auditorDocumentChecklist.requestedBy", { name: auditorName, firm: auditorFirm ?? "" }) : t("bizcomp.auditorDocumentChecklist.notPublishedYet")}</p>
         </div>
       </div>
 
       {items.length === 0 ? (
-        <p className="mt-6 rounded-lg border border-dashed border-gray-200 p-4 text-center text-xs text-gray-400">No checklist yet. Upload your statutory pack (financial statements, trial balance, ledger, fixed assets, prior CIT return) in the meantime.</p>
+        <p className="mt-6 rounded-lg border border-dashed border-gray-200 p-4 text-center text-xs text-gray-400">{t("bizcomp.auditorDocumentChecklist.noChecklistYet")}</p>
       ) : (
         <>
           <div className="mt-4">
             <div className="mb-1 flex justify-between text-xs text-gray-500">
-              <span>Audit pack readiness</span>
+              <span>{t("bizcomp.auditorDocumentChecklist.readiness")}</span>
               <span className="font-semibold text-gray-700">{provided} / {required.length} · {pct}%</span>
             </div>
             <ProgressBar value={pct} />
@@ -44,13 +46,13 @@ export default function AuditorDocumentChecklist({ checklist, onPickItem }: { ch
                   <div className="min-w-0 flex-1">
                     <p className={`text-sm ${done ? "text-gray-500 line-through" : "font-medium text-gray-800"}`}>
                       {item.name}
-                      {!item.required && <span className="ml-1 text-[10px] font-normal text-gray-400">(optional)</span>}
+                      {!item.required && <span className="ml-1 text-[10px] font-normal text-gray-400">({t("common.optional")})</span>}
                     </p>
                     {item.description && !done && <p className="text-[11px] text-gray-400">{item.description}</p>}
                   </div>
                   {!done && (
                     <button onClick={() => onPickItem(item)} className="inline-flex shrink-0 items-center gap-1 rounded-md bg-brand-blue/10 px-2 py-1 text-[11px] font-semibold text-brand-blue hover:bg-brand-blue/20">
-                      <Upload className="h-3 w-3" /> Upload
+                      <Upload className="h-3 w-3" /> {t("bizcomp.auditorDocumentChecklist.upload")}
                     </button>
                   )}
                 </li>

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Building2, ShieldCheck, ChevronLeft } from "lucide-react";
 import AuthBrandPanel from "@/components/layout/AuthBrandPanel";
+import T from "@/components/layout/T";
 
 // Matches the "Choose your role" Figma screen. Each option links straight
 // to that role's sign-up flow, since a role is chosen before an account
@@ -16,24 +17,24 @@ export default function ChooseRolePage() {
           className="mb-8 inline-flex w-fit items-center gap-1 text-sm text-gray-500 hover:text-gray-700"
         >
           <ChevronLeft className="h-4 w-4" />
-          Back
+          <T k="common.back" />
         </Link>
 
         <h1 className="mb-8 text-3xl font-extrabold text-brand-navy">
-          Choose your role
+          <T k="auth.chooseRole.title" />
         </h1>
 
         <div className="flex flex-col gap-4">
           <RoleOption
             href="/sign-up/business"
-            title="Business Owner"
-            quote="File your Pvt Ltd company income tax file"
+            title={<T k="auth.role.business.title" />}
+            quote={<T k="auth.role.business.quote" />}
             icon={<Building2 className="h-6 w-6 text-gray-400" />}
           />
           <RoleOption
             href="/sign-up/auditor"
-            title="Auditor"
-            quote="Review and approved your client companies Income tax files"
+            title={<T k="auth.role.auditor.title" />}
+            quote={<T k="auth.role.auditor.quote" />}
             icon={<ShieldCheck className="h-6 w-6 text-gray-400" />}
           />
         </div>
@@ -49,8 +50,8 @@ function RoleOption({
   icon,
 }: {
   href: string;
-  title: string;
-  quote: string;
+  title: React.ReactNode;
+  quote: React.ReactNode;
   icon: React.ReactNode;
 }) {
   return (

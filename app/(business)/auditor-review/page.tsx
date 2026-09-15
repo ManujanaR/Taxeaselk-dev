@@ -33,9 +33,9 @@ export default async function AuditorReviewPage() {
             <T k="business.auditorReview.citStatus" />
           </p>
           <div className="divide-y divide-gray-50">
-            <SummaryCountRow label="Waiting on you" count={view.openRequests} tone={view.openRequests ? "warning" : "success"} />
-            <SummaryCountRow label="Awaiting auditor review" count={view.needsReviewCount} tone="info" />
-            <SummaryCountRow label="Resolved" count={view.resolvedCount} tone="success" />
+            <SummaryCountRow label={<T k="bizpage.auditorReview.waitingOnYou" />} count={view.openRequests} tone={view.openRequests ? "warning" : "success"} />
+            <SummaryCountRow label={<T k="bizpage.auditorReview.awaitingAuditorReview" />} count={view.needsReviewCount} tone="info" />
+            <SummaryCountRow label={<T k="bizpage.auditorReview.resolved" />} count={view.resolvedCount} tone="success" />
           </div>
         </Card>
       </div>

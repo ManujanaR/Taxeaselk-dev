@@ -14,9 +14,9 @@ export default async function AuditorDashboardPage() {
   return (
     <div>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <Tile title={<T k="auditor.dashboard.activeClients" />} sub="Active companies under your review" value={data.companiesAssigned} href="/companies" cta={<T k="sidebar.companies" />} />
-        <Tile title={<T k="auditor.dashboard.pendingReviewCount" />} sub="Handover packs awaiting sign-off" value={data.pendingReviews} valueClass="text-brand-blue" href="/companies?status=under_review" cta="Open Companies" />
-        <Tile title={<T k="common.completed" />} sub="Audits signed off" value={data.completedThisPeriod} valueClass="text-status-success" href="/companies?status=approved" cta={<T k="common.viewAll" />} />
+        <Tile title={<T k="auditor.dashboard.activeClients" />} sub={<T k="audpage.dashboard.activeClientsSub" />} value={data.companiesAssigned} href="/companies" cta={<T k="sidebar.companies" />} />
+        <Tile title={<T k="auditor.dashboard.pendingReviewCount" />} sub={<T k="audpage.dashboard.pendingReviewSub" />} value={data.pendingReviews} valueClass="text-brand-blue" href="/companies?status=under_review" cta={<T k="audpage.dashboard.openCompanies" />} />
+        <Tile title={<T k="common.completed" />} sub={<T k="audpage.dashboard.completedSub" />} value={data.completedThisPeriod} valueClass="text-status-success" href="/companies?status=approved" cta={<T k="common.viewAll" />} />
       </div>
 
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
@@ -27,11 +27,11 @@ export default async function AuditorDashboardPage() {
               <T k="auditor.reviewQueue.queueTitle" />
             </p>
             <div className="space-y-2 text-sm">
-              <Row label="Invitations" value={w.invited} href="/companies?status=invited" />
-              <Row label="Waiting for pack" value={w.active} href="/companies?status=active" />
+              <Row label={<T k="audpage.dashboard.invitations" />} value={w.invited} href="/companies?status=invited" />
+              <Row label={<T k="audpage.dashboard.waitingForPack" />} value={w.active} href="/companies?status=active" />
               <Row label={<T k="status.underReview" />} value={w.underReview} href="/companies?status=under_review" />
               <Row label={<T k="common.completed" />} value={w.approved} href="/companies?status=approved" />
-              <Row label="High-priority requests open" value={data.highPriorityOpen} href="/requests" danger />
+              <Row label={<T k="audpage.dashboard.highPriorityOpen" />} value={data.highPriorityOpen} href="/requests" danger />
             </div>
           </Card>
           <AuditorRecentActivityCard activity={data.recentActivity} />
@@ -41,7 +41,7 @@ export default async function AuditorDashboardPage() {
   );
 }
 
-function Tile({ title, sub, value, valueClass = "text-gray-900", href, cta }: { title: React.ReactNode; sub: string; value: number; valueClass?: string; href: string; cta: React.ReactNode }) {
+function Tile({ title, sub, value, valueClass = "text-gray-900", href, cta }: { title: React.ReactNode; sub: React.ReactNode; value: number; valueClass?: string; href: string; cta: React.ReactNode }) {
   return (
     <Card className="p-5">
       <p className="font-semibold text-gray-800">{title}</p>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { ReactNode, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ChevronDown, Settings, LogOut, Copy, Check } from "lucide-react";
@@ -14,7 +14,7 @@ interface ProfileMenuProps {
   email: string;
   userInitials: string;
   userId: string;
-  roleLabel: string; // small chip shown under the name, e.g. "Admin" or "Auditor"
+  roleLabel: ReactNode; // small chip shown under the name, e.g. "Admin" or "Auditor"
   settingsHref: string;
 }
 

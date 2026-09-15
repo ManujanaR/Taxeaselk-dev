@@ -1,6 +1,7 @@
 import { LayoutGrid, Building2, Inbox, MessagesSquare, ScrollText, Settings as SettingsIcon } from "lucide-react";
 import Sidebar, { NavItem } from "@/components/layout/Sidebar";
 import TopBar from "@/components/layout/TopBar";
+import T from "@/components/layout/T";
 import AuditorRankRating from "@/components/layout/AuditorRankRating";
 import { formattedUserId, getSession, initials } from "@/lib/auth";
 import { RealtimeProvider } from "@/lib/realtime";
@@ -25,7 +26,7 @@ export default async function AuditorLayout({ children }: { children: React.Reac
       <Sidebar workspaceLabelKey="sidebar.auditorWorkspace" navItems={navItems} settingsHref="/auditor-settings" badgeHrefs={["/requests", "/auditor-discussions"]} />
       <div className="flex min-w-0 flex-1 flex-col">
         <TopBar
-          roleLabel="Auditor"
+          roleLabel={<T k="shared.roleAuditor" />}
           userInitials={initials(user.fullName)}
           displayName={user.fullName}
           email={user.email}

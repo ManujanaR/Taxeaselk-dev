@@ -11,7 +11,7 @@ interface TopBarProps {
   // Left-side content differs per portal: company + FY pickers for the
   // Business view, "All Companies" + year pickers for the Auditor view.
   leftContent: ReactNode;
-  roleLabel: string; // "Admin" or "Auditor" — shown as the small chip next to the avatar
+  roleLabel: ReactNode; // "Admin" or "Auditor" — shown as the small chip next to the avatar
   userInitials: string;
   displayName: string;
   email: string;

@@ -9,15 +9,16 @@ import { apiServer } from "@/lib/api/server";
 import { getSession } from "@/lib/auth";
 import { lkr } from "@/lib/format";
 import type { DashboardView } from "@/lib/types";
+import type { TranslationKey } from "@/lib/i18n/translations";
 
-const AUDITOR_LABEL: Record<DashboardView["auditorStatus"], string> = {
-  none: "Not Appointed",
-  invited: "Invitation Pending",
-  active: "Waiting for Submission",
-  under_review: "Under Review",
-  approved: "Approved",
-  declined: "Invitation Declined",
-  terminated: "Not Appointed",
+const AUDITOR_LABEL: Record<DashboardView["auditorStatus"], TranslationKey> = {
+  none: "bizpage.dashboard.auditorNotAppointed",
+  invited: "bizpage.dashboard.auditorInvitationPending",
+  active: "bizpage.dashboard.auditorWaitingSubmission",
+  under_review: "status.underReview",
+  approved: "status.approved",
+  declined: "bizpage.dashboard.auditorInvitationDeclined",
+  terminated: "bizpage.dashboard.auditorNotAppointed",
 };
 
 export default async function DashboardPage() {
@@ -30,7 +31,7 @@ export default async function DashboardPage() {
         <T k="pages.dashboard.title" />
       </h1>
       <p className="mt-1 text-sm text-gray-500">
-        Financial Year {company.financialYear} &mdash; {company.companyName}
+        <T k="bizpage.dashboard.subtitle" params={{ year: company.financialYear, company: company.companyName }} />
       </p>
 
       <DashboardPipelineProgress data={data} />
@@ -39,17 +40,17 @@ export default async function DashboardPage() {
         <StatCard
           label={<T k="business.dashboard.documents" />}
           value={`${data.documentsUploaded} / ${data.documentsRequired}`}
-          hint={data.documentsUploaded >= data.documentsRequired ? <span className="font-medium text-emerald-600">All statutory docs gathered</span> : <T k="business.dashboard.pendingUpload" params={{ count: Math.max(0, data.documentsRequired - data.documentsUploaded) }} />}
+          hint={data.documentsUploaded >= data.documentsRequired ? <span className="font-medium text-emerald-600"><T k="bizpage.dashboard.allDocsGathered" /></span> : <T k="business.dashboard.pendingUpload" params={{ count: Math.max(0, data.documentsRequired - data.documentsUploaded) }} />}
         />
         <StatCard
           label={<T k="business.dashboard.accountingProfit" />}
           value={data.accountingProfit === null ? "—" : lkr(data.accountingProfit)}
-          hint={data.accountingProfit === null ? <Link href="/financials" className="text-brand-blue hover:underline">Enter your figures</Link> : `Indicative CIT ${lkr(data.citLiability, { compact: true })}`}
+          hint={data.accountingProfit === null ? <Link href="/financials" className="text-brand-blue hover:underline"><T k="bizpage.dashboard.enterFigures" /></Link> : <T k="bizpage.dashboard.indicativeCit" params={{ amount: lkr(data.citLiability, { compact: true }) }} />}
         />
         <StatCard
           label={<T k="business.dashboard.auditorStatus" />}
-          value={AUDITOR_LABEL[data.auditorStatus]}
-          hint={data.auditorFirm ? `${data.auditorName} · ${data.auditorFirm}` : <Link href="/auditor-review" className="text-brand-blue hover:underline">Invite an auditor</Link>}
+          value={<T k={AUDITOR_LABEL[data.auditorStatus]} />}
+          hint={data.auditorFirm ? `${data.auditorName} · ${data.auditorFirm}` : <Link href="/auditor-review" className="text-brand-blue hover:underline"><T k="bizpage.dashboard.inviteAnAuditor" /></Link>}
         />
       </div>
 
@@ -71,7 +72,7 @@ export default async function DashboardPage() {
             </Link>
             <Link href="/auditor-review">
               <Button variant="secondary" icon={<UserCheck className="h-4 w-4" />} className="w-full justify-start">
-                Auditor Review
+                <T k="sidebar.auditorReview" />
               </Button>
             </Link>
           </div>
@@ -86,8 +87,8 @@ export default async function DashboardPage() {
               <div className="flex items-center gap-3 rounded-lg border border-emerald-100 bg-emerald-50/60 p-4">
                 <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-600" />
                 <div>
-                  <p className="text-sm font-semibold text-emerald-900">All Caught Up</p>
-                  <p className="mt-0.5 text-xs text-emerald-700/80">No open auditor inquiries or flagged documents.</p>
+                  <p className="text-sm font-semibold text-emerald-900"><T k="bizpage.dashboard.allCaughtUpTitle" /></p>
+                  <p className="mt-0.5 text-xs text-emerald-700/80"><T k="bizpage.dashboard.allCaughtUpSubtitle" /></p>
                 </div>
               </div>
             ) : (

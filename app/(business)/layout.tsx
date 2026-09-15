@@ -1,6 +1,7 @@
 import { LayoutGrid, FileText, DollarSign, UserCheck, MessagesSquare, Settings as SettingsIcon } from "lucide-react";
 import Sidebar, { NavItem } from "@/components/layout/Sidebar";
 import TopBar from "@/components/layout/TopBar";
+import T from "@/components/layout/T";
 import BusinessTopBarBadges from "@/components/layout/BusinessTopBarBadges";
 import { formattedUserId, getSession, initials } from "@/lib/auth";
 import { RealtimeProvider } from "@/lib/realtime";
@@ -25,7 +26,7 @@ export default async function BusinessLayout({ children }: { children: React.Rea
       <Sidebar workspaceLabelKey="sidebar.companyUser" navItems={navItems} settingsHref="/settings" badgeHrefs={["/auditor-review", "/discussions"]} />
       <div className="flex min-w-0 flex-1 flex-col">
         <TopBar
-          roleLabel="Admin"
+          roleLabel={<T k="shared.roleAdmin" />}
           userInitials={initials(user.fullName)}
           displayName={user.fullName}
           email={user.email}

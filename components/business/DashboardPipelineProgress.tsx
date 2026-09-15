@@ -2,7 +2,9 @@ import Link from "next/link";
 import { FolderOpen, Calculator, ShieldCheck, Send, MessagesSquare, Clock, CheckCircle2, ChevronRight } from "lucide-react";
 import Card from "@/components/ui/Card";
 import ProgressBar from "@/components/ui/ProgressBar";
+import T from "@/components/layout/T";
 import type { DashboardView } from "@/lib/types";
+import type { TranslationKey } from "@/lib/i18n/translations";
 
 const ICONS: Record<string, { icon: React.ComponentType<{ className?: string }>; color: string; bg: string }> = {
   documents: { icon: FolderOpen, color: "text-blue-600", bg: "bg-blue-50" },
@@ -14,24 +16,24 @@ const ICONS: Record<string, { icon: React.ComponentType<{ className?: string }>;
 
 export default function DashboardPipelineProgress({ data }: { data: DashboardView }) {
   const pct = data.progressPercent;
-  const chip = pct >= 100 ? ["Audit Pack Signed Off", "border-emerald-200 bg-emerald-100 text-emerald-800"] : pct >= 60 ? ["Handover In Progress", "border-blue-200 bg-blue-50 text-brand-blue"] : ["Awaiting Documents", "border-amber-200 bg-amber-50 text-amber-800"];
+  const chip: [TranslationKey, string] = pct >= 100 ? ["bizpage.pipeline.signedOff", "border-emerald-200 bg-emerald-100 text-emerald-800"] : pct >= 60 ? ["bizpage.pipeline.inProgress", "border-blue-200 bg-blue-50 text-brand-blue"] : ["bizpage.pipeline.awaitingDocuments", "border-amber-200 bg-amber-50 text-amber-800"];
 
   return (
     <Card className="mt-6 border border-gray-200/90 p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <h2 className="text-lg font-bold text-gray-900">Audit Handover &amp; Verification Pipeline</h2>
-            <span className={`rounded-full border px-2.5 py-0.5 text-xs font-bold ${chip[1]}`}>{chip[0]}</span>
+            <h2 className="text-lg font-bold text-gray-900"><T k="bizpage.pipeline.title" /></h2>
+            <span className={`rounded-full border px-2.5 py-0.5 text-xs font-bold ${chip[1]}`}><T k={chip[0]} /></span>
           </div>
-          <p className="mt-1 text-xs text-gray-400">Document collection, CIT computation and auditor verification for this year of assessment</p>
+          <p className="mt-1 text-xs text-gray-400"><T k="bizpage.pipeline.subtitle" /></p>
         </div>
         <div className="text-right">
           <div className="flex items-baseline justify-end gap-1">
             <span className="text-3xl font-extrabold tracking-tight text-brand-blue">{pct}%</span>
-            <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">Complete</span>
+            <span className="text-xs font-semibold uppercase tracking-wide text-gray-500"><T k="business.dashboard.complete" /></span>
           </div>
-          <p className="mt-0.5 text-[11px] text-gray-400">Five stages, equally weighted</p>
+          <p className="mt-0.5 text-[11px] text-gray-400"><T k="bizpage.pipeline.fiveStages" /></p>
         </div>
       </div>
 
@@ -52,7 +54,7 @@ export default function DashboardPipelineProgress({ data }: { data: DashboardVie
                     <div className={`flex h-7 w-7 items-center justify-center rounded-lg ${cfg.bg} ${cfg.color}`}>
                       <Icon className="h-4 w-4" />
                     </div>
-                    <span className="text-[11px] font-bold text-gray-400">Stage {index + 1}</span>
+                    <span className="text-[11px] font-bold text-gray-400"><T k="bizpage.pipeline.stageNumber" params={{ number: index + 1 }} /></span>
                   </div>
                   <span className={`inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-bold ${done ? "bg-emerald-50 text-emerald-700" : "bg-blue-50 text-brand-blue"}`}>
                     {done ? <CheckCircle2 className="h-3 w-3" /> : <Clock className="h-3 w-3" />}

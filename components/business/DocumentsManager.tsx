@@ -12,9 +12,11 @@ import { deleteDocument, replaceDocument, uploadDocument } from "@/lib/api/busin
 import { validateFiles, ACCEPT_ATTR } from "@/lib/files";
 import { date, fileSize } from "@/lib/format";
 import { errorMessage, toast } from "@/lib/toast";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
 import type { ChecklistItem, DocumentsView } from "@/lib/types";
 
 export default function DocumentsManager({ data }: { data: DocumentsView }) {
+  const { t } = useLanguage();
   const router = useRouter();
   const [target, setTarget] = useState<ChecklistItem | null>(null);
   const [uploading, setUploading] = useState<string[]>([]);
@@ -31,7 +33,7 @@ export default function DocumentsManager({ data }: { data: DocumentsView }) {
     if (rejected.length) return toast.error(rejected[0].reason);
     try {
       await replaceDocument(id, valid[0]);
-      toast.success(`Replaced with ${file.name}. Your auditor will re-check it.`);
+      toast.success(t("bizcomp.documentsManager.replacedToast", { name: file.name }));
       router.refresh();
     } catch (err) {
       toast.error(errorMessage(err));
@@ -45,7 +47,7 @@ export default function DocumentsManager({ data }: { data: DocumentsView }) {
     for (const file of files) {
       try {
         await uploadDocument(file, target?.category || "General", target?.id);
-        toast.success(`${file.name} uploaded.`);
+        toast.success(t("bizcomp.documentsManager.uploadedToast", { name: file.name }));
       } catch (e) {
         toast.error(`${file.name}: ${errorMessage(e)}`);
       } finally {
@@ -57,10 +59,10 @@ export default function DocumentsManager({ data }: { data: DocumentsView }) {
   }
 
   async function remove(id: string, name: string) {
-    if (!confirm(`Delete ${name}?`)) return;
+    if (!confirm(t("bizcomp.documentsManager.deleteConfirm", { name }))) return;
     try {
       await deleteDocument(id);
-      toast.success(`${name} deleted.`);
+      toast.success(t("bizcomp.documentsManager.deletedToast", { name }));
       router.refresh();
     } catch (e) {
       toast.error(errorMessage(e));
@@ -70,10 +72,10 @@ export default function DocumentsManager({ data }: { data: DocumentsView }) {
   return (
     <>
       <div className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-4">
-        <StatCard label="Uploaded" value={data.uploadedCount} hint={data.unsentCount ? `${data.unsentCount} not yet sent to auditor` : "All sent to auditor"} />
-        <StatCard label="Verified by Auditor" value={data.verifiedCount} valueClassName="text-status-success" />
-        <StatCard label="Review Required" value={data.reviewRequiredCount} valueClassName={data.reviewRequiredCount ? "text-status-warning" : ""} />
-        <StatCard label="Missing from Checklist" value={data.missingCount} valueClassName={data.missingCount ? "text-status-critical" : "text-status-success"} />
+        <StatCard label={t("bizcomp.documentsManager.statUploaded")} value={data.uploadedCount} hint={data.unsentCount ? t("bizcomp.documentsManager.hintNotSent", { count: data.unsentCount }) : t("bizcomp.documentsManager.hintAllSent")} />
+        <StatCard label={t("bizcomp.documentsManager.statVerified")} value={data.verifiedCount} valueClassName="text-status-success" />
+        <StatCard label={t("bizcomp.documentsManager.statReviewRequired")} value={data.reviewRequiredCount} valueClassName={data.reviewRequiredCount ? "text-status-warning" : ""} />
+        <StatCard label={t("bizcomp.documentsManager.statMissing")} value={data.missingCount} valueClassName={data.missingCount ? "text-status-critical" : "text-status-success"} />
       </div>
 
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_380px]">
@@ -85,12 +87,12 @@ export default function DocumentsManager({ data }: { data: DocumentsView }) {
         <table className="w-full text-sm">
           <thead className="bg-gray-50 text-left text-xs uppercase tracking-wide text-gray-500">
             <tr>
-              <th className="px-4 py-3">Document</th>
-              <th className="px-4 py-3">Category</th>
-              <th className="px-4 py-3">Status</th>
-              <th className="px-4 py-3">Uploaded</th>
-              <th className="px-4 py-3">Size</th>
-              <th className="px-4 py-3 text-right">Actions</th>
+              <th className="px-4 py-3">{t("bizcomp.documentsManager.colDocument")}</th>
+              <th className="px-4 py-3">{t("bizcomp.documentsManager.colCategory")}</th>
+              <th className="px-4 py-3">{t("common.status")}</th>
+              <th className="px-4 py-3">{t("common.uploaded")}</th>
+              <th className="px-4 py-3">{t("bizcomp.documentsManager.colSize")}</th>
+              <th className="px-4 py-3 text-right">{t("common.actions")}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50">
@@ -117,16 +119,16 @@ export default function DocumentsManager({ data }: { data: DocumentsView }) {
                 <td className="px-4 py-3 text-gray-600">{fileSize(d.sizeBytes)}</td>
                 <td className="px-4 py-3">
                   <div className="flex justify-end gap-1">
-                    <a href={`/api/documents/${d.id}/file`} title="Download" className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700">
+                    <a href={`/api/documents/${d.id}/file`} title={t("common.download")} className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700">
                       <Download className="h-4 w-4" />
                     </a>
                     {d.status === "review_required" && (
-                      <button onClick={() => { setReplacingId(d.id); replaceInputRef.current?.click(); }} title="Replace with a corrected file" className="rounded-lg p-1.5 text-gray-400 hover:bg-blue-50 hover:text-brand-blue">
+                      <button onClick={() => { setReplacingId(d.id); replaceInputRef.current?.click(); }} title={t("bizcomp.documentsManager.replaceTitle")} className="rounded-lg p-1.5 text-gray-400 hover:bg-blue-50 hover:text-brand-blue">
                         <RefreshCw className="h-4 w-4" />
                       </button>
                     )}
                     {d.status !== "verified" && (
-                      <button onClick={() => remove(d.id, d.name)} title="Delete" className="rounded-lg p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600">
+                      <button onClick={() => remove(d.id, d.name)} title={t("common.delete")} className="rounded-lg p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600">
                         <Trash2 className="h-4 w-4" />
                       </button>
                     )}
@@ -136,7 +138,7 @@ export default function DocumentsManager({ data }: { data: DocumentsView }) {
             ))}
             {data.documents.length === 0 && uploading.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-10 text-center text-sm text-gray-400">No documents uploaded yet.</td>
+                <td colSpan={6} className="px-4 py-10 text-center text-sm text-gray-400">{t("bizcomp.documentsManager.emptyState")}</td>
               </tr>
             )}
           </tbody>

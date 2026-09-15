@@ -10,16 +10,19 @@ import RateAuditorModal from "./RateAuditorModal";
 import { cancelEngagement } from "@/lib/api/business";
 import { date } from "@/lib/format";
 import { errorMessage, toast } from "@/lib/toast";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
+import type { TranslationKey } from "@/lib/i18n/translations";
 import type { EngagementView } from "@/lib/types";
 
-const STATUS: Record<string, { label: string; tone: BadgeTone }> = {
-  invited: { label: "Invitation Sent", tone: "warning" },
-  active: { label: "Engaged — Preparing Pack", tone: "info" },
-  under_review: { label: "Under Review", tone: "info" },
-  approved: { label: "Approved", tone: "success" },
+const STATUS: Record<string, { label: TranslationKey; tone: BadgeTone }> = {
+  invited: { label: "bizcomp.assignedAuditorCard.statusInvitationSent", tone: "warning" },
+  active: { label: "bizcomp.assignedAuditorCard.statusEngagedPreparing", tone: "info" },
+  under_review: { label: "status.underReview", tone: "info" },
+  approved: { label: "status.approved", tone: "success" },
 };
 
 export default function AssignedAuditorCard({ view }: { view: EngagementView }) {
+  const { t } = useLanguage();
   const router = useRouter();
   const [rateOpen, setRateOpen] = useState(false);
   const [confirmCancel, setConfirmCancel] = useState(false);
@@ -32,9 +35,9 @@ export default function AssignedAuditorCard({ view }: { view: EngagementView }) 
         <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gray-100 text-gray-400">
           <User className="h-7 w-7" />
         </div>
-        <p className="mt-3 font-semibold text-gray-800">No auditor appointed yet</p>
+        <p className="mt-3 font-semibold text-gray-800">{t("bizcomp.assignedAuditorCard.noAuditorTitle")}</p>
         <p className="mt-1 max-w-sm text-sm text-gray-500">
-          Invite your statutory auditor by the email they registered with. Once they accept, they will publish your document checklist.
+          {t("bizcomp.assignedAuditorCard.noAuditorHint")}
         </p>
       </Card>
     );
@@ -47,7 +50,7 @@ export default function AssignedAuditorCard({ view }: { view: EngagementView }) 
     setBusy(true);
     try {
       await cancelEngagement();
-      toast.success("Engagement cancelled.");
+      toast.success(t("bizcomp.assignedAuditorCard.cancelledToast"));
       setConfirmCancel(false);
       router.refresh();
     } catch (e) {
@@ -70,7 +73,7 @@ export default function AssignedAuditorCard({ view }: { view: EngagementView }) 
                 <p className="text-base font-bold text-gray-900">{auditor.name}</p>
                 <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${pending ? "border-amber-200/60 bg-amber-50 text-amber-700" : "border-emerald-200/60 bg-emerald-50 text-emerald-700"}`}>
                   {pending ? <Clock className="h-3 w-3" /> : <ShieldCheck className="h-3 w-3" />}
-                  {pending ? "Awaiting acceptance" : "Appointed Statutory Auditor"}
+                  {pending ? t("bizcomp.assignedAuditorCard.awaitingAcceptance") : t("bizcomp.assignedAuditorCard.appointedStatutoryAuditor")}
                 </span>
               </div>
               <p className="mt-0.5 text-xs font-medium text-gray-500">{auditor.firm}</p>
@@ -78,7 +81,7 @@ export default function AssignedAuditorCard({ view }: { view: EngagementView }) 
                 <Mail className="h-3 w-3" /> {auditor.email}
                 <span className="mx-1">·</span>
                 <Star className="h-3 w-3 fill-amber-400 text-amber-500" />
-                {auditor.averageRating ? `${auditor.averageRating.toFixed(1)} (${auditor.totalReviews})` : "No reviews yet"}
+                {auditor.averageRating ? `${auditor.averageRating.toFixed(1)} (${auditor.totalReviews})` : t("bizcomp.assignedAuditorCard.noReviewsYet")}
               </p>
             </div>
           </div>
@@ -86,41 +89,41 @@ export default function AssignedAuditorCard({ view }: { view: EngagementView }) 
           <div className="flex shrink-0 items-center gap-2">
             {engagement.status !== "approved" && (
               <Button variant="secondary" icon={<XCircle className="h-4 w-4 text-red-500" />} className="px-3.5 py-2 text-xs text-red-600 hover:bg-red-50" onClick={() => setConfirmCancel(true)}>
-                {pending ? "Cancel Invitation" : "Cancel Engagement"}
+                {pending ? t("bizcomp.assignedAuditorCard.cancelInvitation") : t("bizcomp.assignedAuditorCard.cancelEngagement")}
               </Button>
             )}
             {engagement.status === "approved" && !review && (
               <Button icon={<Star className="h-4 w-4" />} className="px-3.5 py-2 text-xs" onClick={() => setRateOpen(true)}>
-                Rate Auditor
+                {t("bizcomp.assignedAuditorCard.rateAuditor")}
               </Button>
             )}
-            {review && <Badge tone="success">You rated {review.rating} ★</Badge>}
+            {review && <Badge tone="success">{t("bizcomp.assignedAuditorCard.youRated", { rating: review.rating })}</Badge>}
           </div>
         </div>
 
         <div className="mt-6 grid grid-cols-2 gap-4 border-t border-gray-100 pt-5 sm:grid-cols-4">
-          <Meta label="Engagement Status">
-            <Badge tone={status.tone}>{status.label}</Badge>
+          <Meta label={t("bizcomp.assignedAuditorCard.metaEngagementStatus")}>
+            <Badge tone={status.tone}>{t(status.label)}</Badge>
           </Meta>
-          <Meta label="Tax Year">{engagement.taxYear}</Meta>
-          <Meta label="Pack Submitted">{date(engagement.submittedAt)}</Meta>
-          <Meta label={engagement.status === "approved" ? "Approved On" : "Accepted On"}>{date(engagement.status === "approved" ? engagement.approvedAt : engagement.acceptedAt)}</Meta>
+          <Meta label={t("bizcomp.assignedAuditorCard.metaTaxYear")}>{engagement.taxYear}</Meta>
+          <Meta label={t("bizcomp.assignedAuditorCard.metaPackSubmitted")}>{date(engagement.submittedAt)}</Meta>
+          <Meta label={engagement.status === "approved" ? t("bizcomp.assignedAuditorCard.metaApprovedOn") : t("bizcomp.assignedAuditorCard.metaAcceptedOn")}>{date(engagement.status === "approved" ? engagement.approvedAt : engagement.acceptedAt)}</Meta>
         </div>
       </Card>
 
       {confirmCancel && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <Card className="w-full max-w-md p-6">
-            <h3 className="text-base font-bold text-gray-900">{pending ? "Cancel invitation?" : "Cancel engagement?"}</h3>
+            <h3 className="text-base font-bold text-gray-900">{pending ? t("bizcomp.assignedAuditorCard.cancelInvitationConfirmTitle") : t("bizcomp.assignedAuditorCard.cancelEngagementConfirmTitle")}</h3>
             <p className="mt-2 text-sm text-gray-600">
-              {pending ? "The auditor will no longer be able to accept this invitation." : "This resets your workspace: every document, your CIT figures, the checklist, all requests and discussions with this auditor are permanently deleted. You start from a clean slate when you invite the next auditor."}
+              {pending ? t("bizcomp.assignedAuditorCard.cancelInvitationBody") : t("bizcomp.assignedAuditorCard.cancelEngagementBody")}
             </p>
             <div className="mt-5 flex justify-end gap-2">
               <Button variant="secondary" onClick={() => setConfirmCancel(false)} disabled={busy}>
-                Keep
+                {t("bizcomp.assignedAuditorCard.keep")}
               </Button>
               <Button variant="danger" onClick={cancel} disabled={busy}>
-                {busy ? "Cancelling..." : "Yes, cancel"}
+                {busy ? t("bizcomp.assignedAuditorCard.cancelling") : t("bizcomp.assignedAuditorCard.yesCancel")}
               </Button>
             </div>
           </Card>

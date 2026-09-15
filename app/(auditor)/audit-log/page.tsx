@@ -20,7 +20,7 @@ export default async function AuditLogPage({ searchParams }: { searchParams: { c
       <p className="mt-1 text-sm text-gray-500"><T k="pages.auditLog.subtitle" /></p>
 
       <div className="mt-5 flex flex-wrap gap-2">
-        <Link href="/audit-log" className={`rounded-full px-3 py-1 text-xs font-semibold ${!companyId ? "bg-brand-blue text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>All companies</Link>
+        <Link href="/audit-log" className={`rounded-full px-3 py-1 text-xs font-semibold ${!companyId ? "bg-brand-blue text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}><T k="audpage.auditLog.allCompanies" /></Link>
         {companies.map(([id, name]) => (
           <Link key={id} href={`/audit-log?companyId=${id}`} className={`rounded-full px-3 py-1 text-xs font-semibold ${companyId === id ? "bg-brand-blue text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>{name}</Link>
         ))}
@@ -30,15 +30,15 @@ export default async function AuditLogPage({ searchParams }: { searchParams: { c
         <table className="w-full text-sm">
           <thead className="bg-gray-50 text-left text-xs uppercase tracking-wide text-gray-500">
             <tr>
-              <th className="px-4 py-3">Timestamp</th>
-              <th className="px-4 py-3">Company</th>
-              <th className="px-4 py-3">Actor</th>
-              <th className="px-4 py-3">Event</th>
-              <th className="px-4 py-3">Details</th>
+              <th className="px-4 py-3"><T k="audpage.auditLog.timestamp" /></th>
+              <th className="px-4 py-3"><T k="common.company" /></th>
+              <th className="px-4 py-3"><T k="audpage.auditLog.actor" /></th>
+              <th className="px-4 py-3"><T k="audpage.auditLog.event" /></th>
+              <th className="px-4 py-3"><T k="common.details" /></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50">
-            {entries.length === 0 && <tr><td colSpan={5} className="px-4 py-10 text-center text-gray-400">No entries yet.</td></tr>}
+            {entries.length === 0 && <tr><td colSpan={5} className="px-4 py-10 text-center text-gray-400"><T k="audpage.auditLog.noEntries" /></td></tr>}
             {entries.map((e) => (
               <tr key={e.id}>
                 <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-gray-500">{dateTime(e.createdAt)}</td>

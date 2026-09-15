@@ -1,3 +1,4 @@
+import { ReactNode } from "react";
 import Badge, { BadgeTone } from "@/components/ui/Badge";
 
 // One row of the "Review Summary" card: a label on the left, a colored
@@ -7,7 +8,7 @@ export default function SummaryCountRow({
   count,
   tone,
 }: {
-  label: string;
+  label: ReactNode;
   count: number;
   tone: BadgeTone;
 }) {

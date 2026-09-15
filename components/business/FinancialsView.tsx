@@ -7,9 +7,11 @@ import T from "@/components/layout/T";
 import CitTaxComputationBanner from "./CitTaxComputationBanner";
 import FinancialInputsForm from "./FinancialInputsForm";
 import { lkr } from "@/lib/format";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
 import type { FinancialsView as FinancialsData, StatutoryDocument } from "@/lib/types";
 
 export default function FinancialsView({ data, documents }: { data: FinancialsData; documents: StatutoryDocument[] }) {
+  const { t } = useLanguage();
   const c = data.computed;
   return (
     <div>
@@ -24,7 +26,7 @@ export default function FinancialsView({ data, documents }: { data: FinancialsDa
         </div>
         {c && (
           <Button variant="secondary" icon={<Printer className="h-4 w-4" />} onClick={() => window.print()}>
-            Print Computation
+            {t("bizcomp.financialsView.printComputation")}
           </Button>
         )}
       </div>
@@ -32,11 +34,11 @@ export default function FinancialsView({ data, documents }: { data: FinancialsDa
       {c ? (
         <>
           <div className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-5">
-            <StatCard label="Gross Turnover" value={lkr(c.grossProfit + (data.inputs?.costOfSales ?? 0), { compact: true })} hint="Commercial inflows" />
-            <StatCard label="Cost of Sales" value={lkr(data.inputs?.costOfSales, { compact: true })} hint="Direct production costs" />
-            <StatCard label="Gross Profit" value={lkr(c.grossProfit, { compact: true })} hint={`${c.grossMarginPercent}% trading margin`} />
-            <StatCard label="Operating OPEX" value={lkr(data.inputs?.operatingExpenses, { compact: true })} hint="Admin & sales overheads" />
-            <StatCard label="Accounting Profit" value={lkr(c.accountingProfit, { compact: true })} hint="Revenue − expenses" valueClassName="text-brand-blue" />
+            <StatCard label={t("bizcomp.financialsView.statGrossTurnover")} value={lkr(c.grossProfit + (data.inputs?.costOfSales ?? 0), { compact: true })} hint={t("bizcomp.financialsView.hintCommercialInflows")} />
+            <StatCard label={t("bizcomp.financialsView.statCostOfSales")} value={lkr(data.inputs?.costOfSales, { compact: true })} hint={t("bizcomp.financialsView.hintDirectProductionCosts")} />
+            <StatCard label={t("bizcomp.financialsView.statGrossProfit")} value={lkr(c.grossProfit, { compact: true })} hint={t("bizcomp.financialsView.hintTradingMargin", { percent: c.grossMarginPercent })} />
+            <StatCard label={t("bizcomp.financialsView.statOperatingOpex")} value={lkr(data.inputs?.operatingExpenses, { compact: true })} hint={t("bizcomp.financialsView.hintAdminSalesOverheads")} />
+            <StatCard label={t("bizcomp.financialsView.statAccountingProfit")} value={lkr(c.accountingProfit, { compact: true })} hint={t("bizcomp.financialsView.hintRevenueMinusExpenses")} valueClassName="text-brand-blue" />
           </div>
           <div className="mt-6">
             <CitTaxComputationBanner computed={c} inputs={data.inputs!} rateCategory={data.rateCategory} />
@@ -44,7 +46,7 @@ export default function FinancialsView({ data, documents }: { data: FinancialsDa
         </>
       ) : (
         <div className="mt-6 rounded-card border border-dashed border-gray-300 bg-white p-6 text-sm text-gray-500">
-          Enter your figures below (or extract them from an uploaded financial statement) to see the statutory CIT computation.
+          {t("bizcomp.financialsView.emptyStateHint")}
         </div>
       )}
 

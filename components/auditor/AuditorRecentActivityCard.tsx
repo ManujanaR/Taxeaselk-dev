@@ -1,5 +1,6 @@
 import { CheckCircle2, AlertTriangle, Info } from "lucide-react";
 import Card from "@/components/ui/Card";
+import T from "@/components/layout/T";
 import { relative, titleCase } from "@/lib/format";
 import type { AuditLogEntry } from "@/lib/types";
 
@@ -12,9 +13,9 @@ const ICON = {
 export default function AuditorRecentActivityCard({ activity }: { activity: AuditLogEntry[] }) {
   return (
     <Card className="p-5">
-      <p className="mb-3 font-semibold text-gray-800">Recent Activity</p>
+      <p className="mb-3 font-semibold text-gray-800"><T k="audcomp.recentActivity.title" /></p>
       {activity.length === 0 ? (
-        <p className="py-4 text-center text-sm text-gray-400">No activity yet.</p>
+        <p className="py-4 text-center text-sm text-gray-400"><T k="audcomp.recentActivity.emptyState" /></p>
       ) : (
         <ul className="space-y-3">
           {activity.map((a) => {

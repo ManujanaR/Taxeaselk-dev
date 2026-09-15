@@ -9,20 +9,23 @@ import Button from "@/components/ui/Button";
 import { dismissRequest, remindRequest, requestRevision, resolveRequest } from "@/lib/api/auditor";
 import { date, dateTime, daysUntil, fileSize } from "@/lib/format";
 import { errorMessage, toast } from "@/lib/toast";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
+import type { TranslationKey } from "@/lib/i18n/translations";
 import type { RfiRequest } from "@/lib/types";
 
-export const REQUEST_STATUS: Record<RfiRequest["status"], { label: string; tone: BadgeTone }> = {
-  pending: { label: "Waiting on client", tone: "warning" },
-  responded: { label: "Needs your review", tone: "info" },
-  revision_requested: { label: "Revision requested", tone: "critical" },
-  resolved: { label: "Resolved", tone: "success" },
-  dismissed: { label: "Dismissed", tone: "neutral" },
+export const REQUEST_STATUS: Record<RfiRequest["status"], { key: TranslationKey; tone: BadgeTone }> = {
+  pending: { key: "audcomp.requestStatus.pending", tone: "warning" },
+  responded: { key: "audcomp.requestStatus.responded", tone: "info" },
+  revision_requested: { key: "audcomp.requestStatus.revisionRequested", tone: "critical" },
+  resolved: { key: "audcomp.requestStatus.resolved", tone: "success" },
+  dismissed: { key: "audcomp.requestStatus.dismissed", tone: "neutral" },
 };
 export const PRIORITY_TONE: Record<RfiRequest["priority"], BadgeTone> = { HIGH: "critical", MEDIUM: "warning", LOW: "info" };
 
 // One request as the auditor sees it: the ask, the client's answer + evidence, and the actions. Used by the
 // cross-company queue and by the company page.
 export default function RequestCard({ request: r, companyName, companyHref, onChanged }: { request: RfiRequest; companyName?: string; companyHref?: string; onChanged: () => void }) {
+  const { t } = useLanguage();
   const [revising, setRevising] = useState(false);
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
@@ -53,7 +56,7 @@ export default function RequestCard({ request: r, companyName, companyHref, onCh
             <span className="font-mono text-xs text-gray-400">{r.referenceCode}</span>
             <p className="font-semibold text-gray-800">{r.title}</p>
             <Badge tone={PRIORITY_TONE[r.priority]}>{r.priority}</Badge>
-            <Badge tone={REQUEST_STATUS[r.status].tone}>{REQUEST_STATUS[r.status].label}</Badge>
+            <Badge tone={REQUEST_STATUS[r.status].tone}>{t(REQUEST_STATUS[r.status].key)}</Badge>
           </div>
           <p className="mt-0.5 flex flex-wrap items-center gap-1 text-xs text-gray-500">
             {companyName && (
@@ -63,26 +66,26 @@ export default function RequestCard({ request: r, companyName, companyHref, onCh
                 <span>·</span>
               </>
             )}
-            {r.category} · Issued {date(r.createdAt)}
-            {r.dueDate && <span className={waiting && days !== null && days < 0 ? "font-semibold text-red-600" : ""}> · Due {date(r.dueDate)}{waiting && days !== null && days < 0 ? ` (${-days}d overdue)` : ""}</span>}
+            {r.category} · {t("audcomp.requestCard.issuedOn", { date: date(r.createdAt) })}
+            {r.dueDate && <span className={waiting && days !== null && days < 0 ? "font-semibold text-red-600" : ""}> · {t("audcomp.requestCard.dueOn", { date: date(r.dueDate) })}{waiting && days !== null && days < 0 ? ` ${t("audcomp.requestCard.overdueDays", { days: -days })}` : ""}</span>}
           </p>
           {r.description && <p className="mt-2 text-sm text-gray-600">{r.description}</p>}
         </div>
         <div className="flex shrink-0 gap-2">
           {r.status === "responded" && (
             <>
-              <Button variant="success" className="px-3 py-1.5 text-xs" icon={<CheckCircle2 className="h-3.5 w-3.5" />} disabled={busy} onClick={() => act(() => resolveRequest(r.id), `${r.referenceCode} resolved.`)}>Resolve</Button>
-              <Button variant="secondary" className="px-3 py-1.5 text-xs" icon={<RotateCcw className="h-3.5 w-3.5" />} disabled={busy} onClick={() => setRevising(true)}>Send back</Button>
+              <Button variant="success" className="px-3 py-1.5 text-xs" icon={<CheckCircle2 className="h-3.5 w-3.5" />} disabled={busy} onClick={() => act(() => resolveRequest(r.id), t("audcomp.toast.requestResolved", { ref: r.referenceCode }))}>{t("audcomp.actions.resolve")}</Button>
+              <Button variant="secondary" className="px-3 py-1.5 text-xs" icon={<RotateCcw className="h-3.5 w-3.5" />} disabled={busy} onClick={() => setRevising(true)}>{t("audcomp.actions.sendBack")}</Button>
             </>
           )}
-          {waiting && <Button variant="secondary" className="px-3 py-1.5 text-xs" icon={<Bell className="h-3.5 w-3.5" />} disabled={busy} onClick={() => act(() => remindRequest(r.id), "Reminder sent to the client.")}>Remind</Button>}
-          {open && <Button variant="secondary" className="px-3 py-1.5 text-xs text-gray-500" icon={<Trash2 className="h-3.5 w-3.5" />} disabled={busy} onClick={() => confirm(`Dismiss ${r.referenceCode}? The client will be told it is no longer needed.`) && act(() => dismissRequest(r.id), `${r.referenceCode} dismissed.`)}>Dismiss</Button>}
+          {waiting && <Button variant="secondary" className="px-3 py-1.5 text-xs" icon={<Bell className="h-3.5 w-3.5" />} disabled={busy} onClick={() => act(() => remindRequest(r.id), t("audcomp.toast.reminderSent"))}>{t("audcomp.actions.remind")}</Button>}
+          {open && <Button variant="secondary" className="px-3 py-1.5 text-xs text-gray-500" icon={<Trash2 className="h-3.5 w-3.5" />} disabled={busy} onClick={() => confirm(t("audcomp.requestCard.dismissConfirm", { ref: r.referenceCode })) && act(() => dismissRequest(r.id), t("audcomp.toast.requestDismissed", { ref: r.referenceCode }))}>{t("audcomp.actions.dismiss")}</Button>}
         </div>
       </div>
 
       {r.response && (
         <div className="mt-3 rounded-lg border border-gray-100 bg-gray-50 p-3">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">Client answer · {dateTime(r.response.createdAt)}</p>
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">{t("audcomp.requestCard.clientAnswer", { date: dateTime(r.response.createdAt) })}</p>
           <p className="mt-1 whitespace-pre-wrap text-sm text-gray-700">{r.response.note}</p>
           {r.response.attachments.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-2">
@@ -93,7 +96,7 @@ export default function RequestCard({ request: r, companyName, companyHref, onCh
               ))}
             </div>
           )}
-          {r.status === "revision_requested" && r.response.revisionNote && <p className="mt-2 text-xs text-red-700"><span className="font-semibold">You asked for:</span> {r.response.revisionNote}</p>}
+          {r.status === "revision_requested" && r.response.revisionNote && <p className="mt-2 text-xs text-red-700"><span className="font-semibold">{t("audcomp.requestCard.youAskedFor")}</span> {r.response.revisionNote}</p>}
         </div>
       )}
 
@@ -101,14 +104,14 @@ export default function RequestCard({ request: r, companyName, companyHref, onCh
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <Card className="w-full max-w-lg p-0">
             <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
-              <h2 className="text-base font-bold text-gray-900">Send back {r.referenceCode}</h2>
+              <h2 className="text-base font-bold text-gray-900">{t("audcomp.requestCard.sendBackTitle", { ref: r.referenceCode })}</h2>
               <button onClick={() => setRevising(false)} className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100"><X className="h-5 w-5" /></button>
             </div>
             <div className="space-y-4 p-6">
-              <textarea rows={4} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Tell the client what is missing, e.g. 'Please provide the tax invoice showing the VAT registration number.'" className="w-full rounded-lg border border-gray-300 p-2.5 text-sm focus:border-brand-blue focus:outline-none focus:ring-1 focus:ring-brand-blue" />
+              <textarea rows={4} value={note} onChange={(e) => setNote(e.target.value)} placeholder={t("audcomp.requestCard.sendBackPlaceholder")} className="w-full rounded-lg border border-gray-300 p-2.5 text-sm focus:border-brand-blue focus:outline-none focus:ring-1 focus:ring-brand-blue" />
               <div className="flex justify-end gap-2">
-                <Button variant="secondary" onClick={() => setRevising(false)} disabled={busy}>Cancel</Button>
-                <Button disabled={busy || !note.trim()} onClick={() => act(() => requestRevision(r.id, note), "Sent back to the client.")}>Send back</Button>
+                <Button variant="secondary" onClick={() => setRevising(false)} disabled={busy}>{t("common.cancel")}</Button>
+                <Button disabled={busy || !note.trim()} onClick={() => act(() => requestRevision(r.id, note), t("audcomp.toast.sentBackToClient"))}>{t("audcomp.actions.sendBack")}</Button>
               </div>
             </div>
           </Card>

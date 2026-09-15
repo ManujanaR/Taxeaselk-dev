@@ -13,7 +13,7 @@ from app.models import Attachment, AuditorProfile, Company, Engagement, LIVE_ENG
 from app.schemas.base import CamelModel
 from app.schemas.shared import RequestOut, ResponseOut
 from app.services import files
-from app.services.notify import auditor_user_id, business_user_id, log, notify
+from app.services.notify import auditor_user_id, business_user_id, log, notify, touch
 
 router = APIRouter(prefix="/api", tags=["requests"])
 
@@ -50,6 +50,7 @@ async def respond_to_request(request_id: str, note: str = Form(...), attachments
     req.status = "responded"
     notify(db, auditor_user_id(eng), "Client answered a request", f"{co.company_name} answered {req.reference_code}: {req.title}",
            "/requests?status=responded")
+    touch(db, co.user_id)  # refresh the client's own "waiting on you" badge — this request just left it
     log(db, co.id, co.user_id, "REQUEST_ANSWERED", f"Answered {req.reference_code} ({req.title}).")
     db.commit()
     db.refresh(resp)
@@ -129,6 +130,7 @@ def resolve_request(request_id: str, ap: AuditorProfile = Depends(current_audito
     eng = req.engagement
     notify(db, business_user_id(eng), "Request resolved", f"{ap.firm_name} accepted your answer to {req.reference_code}.",
            "/auditor-review", "success")
+    touch(db, ap.user_id)  # refresh the auditor's own "needs my review" badge — this request just left it
     log(db, eng.company_id, ap.user_id, "REQUEST_RESOLVED", f"Resolved {req.reference_code}.", "success")
     db.commit()
     return request_row(req)
@@ -149,6 +151,7 @@ def dismiss_request(request_id: str, ap: AuditorProfile = Depends(current_audito
     eng = req.engagement
     notify(db, business_user_id(eng), f"Request withdrawn: {req.reference_code}", f"{ap.firm_name} no longer needs {req.title}.",
            "/auditor-review", "info")
+    touch(db, ap.user_id)  # refresh the auditor's own badge — dismissed requests no longer count
     log(db, eng.company_id, ap.user_id, "REQUEST_DISMISSED", f"Dismissed {req.reference_code}.", "info")
     db.commit()
     return request_row(req)
@@ -166,6 +169,7 @@ def request_revision(request_id: str, payload: RevisionIn, ap: AuditorProfile = 
     eng = req.engagement
     notify(db, business_user_id(eng), f"Revision requested on {req.reference_code}", payload.note.strip(),
            f"/auditor-review?request={req.id}", "warning")
+    touch(db, ap.user_id)  # request left "needs my review" (now waiting on the client) — refresh auditor badge
     log(db, eng.company_id, ap.user_id, "REQUEST_REVISION", f"Requested revision on {req.reference_code}.", "warning")
     db.commit()
     return request_row(req)

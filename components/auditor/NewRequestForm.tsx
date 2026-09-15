@@ -44,13 +44,17 @@ export default function NewRequestForm({ engagements, onClose, onCreated }: { en
           <button onClick={onClose} className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100"><X className="h-5 w-5" /></button>
         </div>
         <form onSubmit={submit} className="space-y-4 p-6">
-          {engagements.length > 1 && (
+          {engagements.length > 1 ? (
             <Field label={t("audcomp.newRequest.clientCompany")} required>
               <Select value={form.engagementId} onChange={(e) => setForm({ ...form, engagementId: e.target.value })}>
                 {engagements.map((e) => <option key={e.id} value={e.id}>{e.companyName}</option>)}
               </Select>
             </Field>
-          )}
+          ) : engagements.length === 1 ? (
+            <Field label={t("audcomp.newRequest.clientCompany")}>
+              <p className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm font-medium text-gray-800">{engagements[0].companyName}</p>
+            </Field>
+          ) : null}
           <Field label={t("audcomp.newRequest.whatDoYouNeed")} required><Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required placeholder={t("audcomp.newRequest.titlePlaceholder")} /></Field>
           <div className="grid grid-cols-3 gap-3">
             <Field label={t("audcomp.newRequest.category")}><Select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>{REQUEST_CATEGORIES.map((c) => <option key={c}>{c}</option>)}</Select></Field>

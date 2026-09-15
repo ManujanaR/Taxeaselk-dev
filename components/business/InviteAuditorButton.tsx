@@ -88,16 +88,14 @@ export default function InviteAuditorButton() {
             </div>
 
             <div className="space-y-4 overflow-y-auto p-6">
-              <div className="grid grid-cols-2 gap-3">
-                <Field label={t("bizcomp.inviteAuditorButton.taxYearLabel")} required>
-                  <Select value={taxYear} onChange={(e) => setTaxYear(e.target.value)}>
-                    {TAX_YEARS.map((y) => <option key={y}>{y}</option>)}
-                  </Select>
-                </Field>
-                <Field label={t("bizcomp.inviteAuditorButton.messageLabel")}>
-                  <Input value={message} onChange={(e) => setMessage(e.target.value)} placeholder={t("bizcomp.inviteAuditorButton.messagePlaceholder")} />
-                </Field>
-              </div>
+              <Field label={t("bizcomp.inviteAuditorButton.taxYearLabel")} required>
+                <Select value={taxYear} onChange={(e) => setTaxYear(e.target.value)}>
+                  {TAX_YEARS.map((y) => <option key={y}>{y}</option>)}
+                </Select>
+              </Field>
+              <Field label={t("bizcomp.inviteAuditorButton.messageLabel")}>
+                <textarea rows={3} value={message} onChange={(e) => setMessage(e.target.value)} placeholder={t("bizcomp.inviteAuditorButton.messagePlaceholder")} className="w-full rounded-lg border border-gray-300 p-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-brand-blue focus:outline-none focus:ring-1 focus:ring-brand-blue" />
+              </Field>
 
               {tab === "directory" ? (
                 <>

@@ -136,6 +136,30 @@ def delete_document(document_id: str, co: Company = Depends(current_company), db
     db.commit()
 
 
+@router.post("/documents/{document_id}/replace", response_model=DocumentOut)
+async def replace_document(document_id: str, file: UploadFile = File(...), co: Company = Depends(current_company), db: Session = Depends(get_db)):
+    """Swap the file behind an existing document (e.g. after the auditor flagged it), keeping its checklist link."""
+    doc = db.get(Document, document_id)
+    if not doc or doc.company_id != co.id:
+        raise HTTPException(404, "Document not found")
+    if doc.status == "verified":
+        raise HTTPException(409, "This document is already verified")
+    stored, size, ctype = await files.save_upload(file)
+    files.delete_stored(doc.stored_name)
+    doc.name, doc.stored_name, doc.size_bytes, doc.content_type = file.filename, stored, size, ctype
+    doc.status, doc.verified_by, doc.verified_at = "uploaded", None, None
+    eng = live_engagement(db, co.id)
+    pack_sent = bool(eng and eng.status in ("under_review", "approved"))
+    doc.submitted_at = now() if pack_sent else None
+    if pack_sent:
+        log(db, co.id, co.user_id, "DOCUMENT_REPLACED", f"Re-uploaded {file.filename}.", "success")
+        notify(db, auditor_user_id(eng), "Client re-uploaded a document", f"{co.company_name} replaced {file.filename}.",
+               f"/companies/{eng.id}?tab=documents")
+    db.commit()
+    db.refresh(doc)
+    return doc
+
+
 def _can_access_company(db: Session, user: User, company_id: str) -> bool:
     if user.role == "business":
         return user.company.id == company_id

@@ -80,6 +80,8 @@ class AuditorProfile(Base):
 
 
 LIVE_ENGAGEMENT_STATUSES = ("invited", "active", "under_review")
+OPEN_REQUEST_STATUSES = ("pending", "responded", "revision_requested")
+CLOSED_REQUEST_STATUSES = ("resolved", "dismissed")
 
 
 class Engagement(Base):

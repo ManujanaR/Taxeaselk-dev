@@ -138,6 +138,22 @@ class RevisionIn(CamelModel):
     note: str
 
 
+@router.post("/auditor/requests/{request_id}/dismiss", response_model=RequestRow)
+def dismiss_request(request_id: str, ap: AuditorProfile = Depends(current_auditor), db: Session = Depends(get_db)):
+    req = _auditor_request(db, ap, request_id)
+    if req.status in ("resolved", "dismissed"):
+        raise HTTPException(409, "Request is already closed")
+    req.status = "dismissed"
+    if req.response:
+        req.response.status = "dismissed"
+    eng = req.engagement
+    notify(db, business_user_id(eng), f"Request withdrawn: {req.reference_code}", f"{ap.firm_name} no longer needs {req.title}.",
+           "/auditor-review", "info")
+    log(db, eng.company_id, ap.user_id, "REQUEST_DISMISSED", f"Dismissed {req.reference_code}.", "info")
+    db.commit()
+    return request_row(req)
+
+
 @router.post("/auditor/requests/{request_id}/revision", response_model=RequestRow)
 def request_revision(request_id: str, payload: RevisionIn, ap: AuditorProfile = Depends(current_auditor), db: Session = Depends(get_db)):
     req = _auditor_request(db, ap, request_id)

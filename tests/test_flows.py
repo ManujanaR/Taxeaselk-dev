@@ -111,7 +111,8 @@ def test_full_engagement_flow(clients):
     assert aud.post(f"/api/auditor/documents/{doc_id}/verify").json()["status"] == "verified"
     assert biz.delete(f"/api/documents/{doc_id}").status_code == 409  # verified docs are immutable
     # after handover, new uploads reach the auditor immediately
-    assert biz.post("/api/documents", files={"file": ("tb.csv", b"a,b\n", "text/csv")}).json()["submittedAt"] is not None
+    tb = biz.post("/api/documents", files={"file": ("tb.csv", b"a,b\n", "text/csv")}).json()
+    assert tb["submittedAt"] is not None
 
     # request (HIGH) -> business answers with files -> auditor sends back -> answers again -> resolve
     r = aud.post(f"/api/auditor/engagements/{eng_id}/requests", json={"title": "Entertainment add-back", "description": "Sec 11(1)(c)", "priority": "HIGH"})
@@ -146,6 +147,14 @@ def test_full_engagement_flow(clients):
     assert biz.get(f"/api/threads/{thread_id}/messages").json()[1]["senderRole"] == "auditor"
     assert biz.get("/api/threads").json()[0]["unreadCount"] == 0
     assert aud.post(f"/api/threads/{thread_id}/status", json={"status": "closed"}).json()["status"] == "closed"
+
+    # sign-off is blocked while a submitted document is still unverified
+    assert aud.post(f"/api/auditor/engagements/{eng_id}/approve").status_code == 409
+    assert aud.post(f"/api/auditor/documents/{tb['id']}/verify").json()["status"] == "verified"
+    # a dismissed request must not block sign-off
+    r2 = aud.post(f"/api/auditor/engagements/{eng_id}/requests", json={"title": "Optional extra", "priority": "LOW"})
+    assert aud.post(f"/api/auditor/engagements/{eng_id}/approve").status_code == 409  # open request blocks
+    assert aud.post(f"/api/auditor/requests/{r2.json()['id']}/dismiss").json()["status"] == "dismissed"
 
     # approve -> 100% -> rate
     assert aud.post(f"/api/auditor/engagements/{eng_id}/approve").json()["status"] == "approved"

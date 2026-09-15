@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session, object_session
 from app.core.database import get_db
 from app.core.deps import current_auditor, engagement_for_auditor
 from app.models import (
-    AuditLog, AuditorProfile, AuditorReview, Engagement, LIVE_ENGAGEMENT_STATUSES, Request, now,
+    AuditLog, AuditorProfile, AuditorReview, CLOSED_REQUEST_STATUSES, Document, Engagement, LIVE_ENGAGEMENT_STATUSES, Request, now,
 )
 from app.schemas.auth import AuditorProfileOut, CompanyOut
 from app.schemas.base import CamelModel
@@ -77,8 +77,7 @@ def progress_of(eng: Engagement) -> int:
 
 
 def row(eng: Engagement) -> EngagementRow:
-    from app.models import Document
-    open_reqs = [r for r in eng.requests if r.status != "resolved"]
+    open_reqs = [r for r in eng.requests if r.status not in CLOSED_REQUEST_STATUSES]
     docs = object_session(eng).query(Document.status).filter(Document.company_id == eng.company_id, Document.submitted_at.isnot(None)).all()
     return EngagementRow(
         **EngagementOut.model_validate(eng).model_dump(),
@@ -145,8 +144,13 @@ def decline(engagement_id: str, ap: AuditorProfile = Depends(current_auditor), d
 @router.post("/engagements/{engagement_id}/approve", response_model=EngagementRow)
 def approve(engagement_id: str, ap: AuditorProfile = Depends(current_auditor), db: Session = Depends(get_db)):
     eng = engagement_for_auditor(engagement_id, ap, db)
-    if any(r.status != "resolved" for r in eng.requests):
-        raise HTTPException(409, "Resolve all open requests before signing off.")
+    open_reqs = [r for r in eng.requests if r.status not in CLOSED_REQUEST_STATUSES]
+    if open_reqs:
+        raise HTTPException(409, f"Resolve or dismiss {len(open_reqs)} open request(s) before signing off.")
+    submitted = db.query(Document).filter(Document.company_id == eng.company_id, Document.submitted_at.isnot(None)).all()
+    unverified = [d for d in submitted if d.status != "verified"]
+    if unverified:
+        raise HTTPException(409, f"Verify every submitted document first ({len(unverified)} still pending or flagged).")
     _transition(eng, ("under_review",), "approved")
     eng.approved_at = now()
     notify(db, business_user_id(eng), "Audit signed off",
@@ -197,7 +201,7 @@ def dashboard(ap: AuditorProfile = Depends(current_auditor), db: Session = Depen
     live = [e for e in engs if e.status in ("active", "under_review")]
     priority = []
     for e in sorted(live, key=lambda e: (e.status != "under_review", e.created_at)):
-        open_reqs = [r for r in e.requests if r.status != "resolved"]
+        open_reqs = [r for r in e.requests if r.status not in CLOSED_REQUEST_STATUSES]
         needs_review = [r for r in open_reqs if r.status == "responded"]
         if needs_review:
             tag, detail = "CRITICAL" if any(r.priority == "HIGH" for r in needs_review) else "ATTENTION", f"{len(needs_review)} answer(s) waiting for your review"
@@ -217,7 +221,7 @@ def dashboard(ap: AuditorProfile = Depends(current_auditor), db: Session = Depen
                 if company_ids else [])
     return DashboardOut(
         companies_assigned=len(live), pending_reviews=len(by("under_review")),
-        high_priority_open=sum(1 for e in live for r in e.requests if r.priority == "HIGH" and r.status != "resolved"),
+        high_priority_open=sum(1 for e in live for r in e.requests if r.priority == "HIGH" and r.status not in CLOSED_REQUEST_STATUSES),
         completed_this_period=len(by("approved")), priority_reviews=priority[:6],
         workload=Workload(invited=len(by("invited")), active=len(by("active")), under_review=len(by("under_review")), approved=len(by("approved"))),
         recent_activity=[audit_log_out(a) for a in activity],

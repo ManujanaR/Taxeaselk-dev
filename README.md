@@ -25,7 +25,11 @@ The backend must be running (see `../backend/README.md`).
 - `compress: false` in `next.config.js` because Next's gzip buffers the proxied event stream; let nginx/Caddy compress.
 - The only browser storage used is the language preference.
 
-## Production
+## Production (how the container runs it)
+
+The container serves a **production build** via systemd (`taxease-frontend.service` runs `npm run start`). `./sync.sh` rebuilds it on each deploy. Dev mode (`npm run dev`) is only for local work.
+
+## Building
 
 ```bash
 npm run build && npm start   # set API_URL to the internal backend URL and JWT_SECRET in the environment

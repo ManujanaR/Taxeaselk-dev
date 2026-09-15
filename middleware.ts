@@ -40,4 +40,4 @@ export async function middleware(req: NextRequest) {
   return NextResponse.next();
 }
 
-export const config = { matcher: ["/((?!_next|api|images|favicon.ico|logo.png).*)"] };
+export const config = { matcher: ["/((?!_next|api|images|favicon.ico).*)"] };

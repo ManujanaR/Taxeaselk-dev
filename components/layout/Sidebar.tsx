@@ -71,7 +71,7 @@ export default function Sidebar({
         >
           <div className="relative h-10 w-10 shrink-0 transition-transform group-hover:scale-105">
             <Image
-              src="/images/logo-mark.png"
+              src="/images/logo-mark.webp"
               alt="TaxEaseLK Logo"
               fill
               priority

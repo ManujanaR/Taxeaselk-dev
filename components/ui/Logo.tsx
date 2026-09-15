@@ -18,7 +18,7 @@ export default function Logo({
         )}
       >
         <Image
-          src="/images/logo-mark.png"
+          src="/images/logo-mark.webp"
           alt="TaxEaseLK Logo"
           fill
           sizes={size === "md" ? "36px" : "28px"}

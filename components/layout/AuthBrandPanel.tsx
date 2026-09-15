@@ -6,7 +6,7 @@ export default function AuthBrandPanel() {
   return (
     <div className="relative hidden h-full min-h-screen w-full overflow-hidden bg-[#070b28] p-0 m-0 md:flex">
       <Image
-        src="/images/auth-hero.svg"
+        src="/images/auth-hero.webp"
         alt="TaxEaseLK - Simplify. Organize. Collaborate."
         fill
         priority

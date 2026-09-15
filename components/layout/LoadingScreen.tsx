@@ -8,7 +8,7 @@ export default function LoadingScreen() {
       {/* Official TE Logo Mark with controlled sizing */}
       <div className="relative h-24 w-24 md:h-28 md:w-28 drop-shadow-sm">
         <Image
-          src="/images/logo-mark.png"
+          src="/images/logo-mark.webp"
           alt="TaxEaseLK Logo"
           fill
           priority

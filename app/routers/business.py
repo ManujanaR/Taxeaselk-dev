@@ -135,6 +135,19 @@ def auditor_directory(search: str = "", co: Company = Depends(current_company), 
     return out
 
 
+def _reset_workspace(db: Session, company_id: str) -> None:
+    """Delete the company's working data — uploaded documents, request attachments and the CIT figures,
+    including their stored files. Shared by cancel and invite so a new engagement always starts clean;
+    it does NOT touch past engagements/reviews (those are history the auditor's rating depends on)."""
+    for a in db.query(Attachment).filter(Attachment.company_id == company_id):
+        files.delete_stored(a.stored_name)
+    for d in db.query(Document).filter(Document.company_id == company_id):
+        files.delete_stored(d.stored_name)
+    db.query(Attachment).filter(Attachment.company_id == company_id).delete(synchronize_session=False)
+    db.query(Document).filter(Document.company_id == company_id).delete(synchronize_session=False)
+    db.query(FinancialInputs).filter(FinancialInputs.company_id == company_id).delete(synchronize_session=False)
+
+
 @router.post("/engagement/invite", response_model=EngagementOut, status_code=201)
 def invite_auditor(payload: InviteIn, co: Company = Depends(current_company), db: Session = Depends(get_db)):
     if live_engagement(db, co.id):
@@ -142,6 +155,9 @@ def invite_auditor(payload: InviteIn, co: Company = Depends(current_company), db
     auditor_user = db.query(User).filter(User.email == payload.auditor_email.lower(), User.role == "auditor").first()
     if not auditor_user:
         raise HTTPException(404, "No registered auditor with that email. Ask them to sign up first.")
+    # Fresh engagement = clean slate: clear any documents/figures left over from a previous cycle so the
+    # new auditor doesn't inherit stale data (the checklist and uploads for this cycle come after they accept).
+    _reset_workspace(db, co.id)
     eng = Engagement(company_id=co.id, auditor_id=auditor_user.auditor_profile.id, tax_year=payload.tax_year,
                      message=payload.message, status="invited")
     db.add(eng)
@@ -161,13 +177,7 @@ def cancel_engagement(co: Company = Depends(current_company), db: Session = Depe
     # Clean slate: everything shared with this auditor is deleted so a new engagement starts fresh.
     notify(db, auditor_user_id(eng), "Engagement cancelled", f"{co.company_name} cancelled the engagement.", "/companies", "warning")
     touch(db, auditor_user_id(eng))
-    for a in db.query(Attachment).filter(Attachment.company_id == co.id):
-        files.delete_stored(a.stored_name)
-    for d in db.query(Document).filter(Document.company_id == co.id):
-        files.delete_stored(d.stored_name)
-    db.query(Attachment).filter(Attachment.company_id == co.id).delete(synchronize_session=False)
-    db.query(Document).filter(Document.company_id == co.id).delete(synchronize_session=False)
-    db.query(FinancialInputs).filter(FinancialInputs.company_id == co.id).delete(synchronize_session=False)
+    _reset_workspace(db, co.id)
     db.query(AuditLog).filter(AuditLog.company_id == co.id).delete(synchronize_session=False)
     db.query(Notification).filter(Notification.user_id == co.user_id).delete(synchronize_session=False)
     db.delete(eng)  # cascades checklist, requests, responses, threads, messages, review

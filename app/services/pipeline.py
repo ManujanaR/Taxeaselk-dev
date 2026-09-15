@@ -20,7 +20,10 @@ def pipeline(company: Company, eng: Engagement | None, submitted_only: bool = Fa
     docs = db.query(Document).filter(Document.company_id == company.id).all()
     if submitted_only:
         docs = [d for d in docs if d.submitted_at]
-    has_inputs = db.query(FinancialInputs.id).filter(FinancialInputs.company_id == company.id).first() is not None
+    fi = db.query(FinancialInputs).filter(FinancialInputs.company_id == company.id).first()
+    # A row alone isn't "figures entered" — an all-zero save shouldn't light up the stage. Require a real figure.
+    has_inputs = bool(fi and any((fi.revenue, fi.cost_of_sales, fi.operating_expenses,
+                                  fi.accounting_depreciation, fi.entertainment_expenses, fi.tax_depreciation_allowances)))
     approved = bool(eng and eng.status == "approved")
     handed_over = bool(eng and eng.status in ("under_review", "approved"))
 

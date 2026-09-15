@@ -209,3 +209,34 @@ def test_cancel_resets_workspace():
         # a new invitation starts clean
         biz.post("/api/engagement/invite", json={"auditorEmail": "c-aud@x.lk"})
         assert aud.get("/api/auditor/engagements", params={"status": "invited"}).json()[0]["progressPercent"] == 0
+
+
+def test_invite_resets_stale_financials():
+    with TestClient(app) as biz, TestClient(app) as aud:
+        biz.post("/api/auth/register/business", json={"email": "i-biz@x.lk", "password": "password123", "fullName": "O", "companyName": "Stale Co"})
+        aud.post("/api/auth/register/auditor", json={"email": "i-aud@x.lk", "password": "password123", "fullName": "A", "firmName": "F"})
+        # an all-zero financials save must NOT light up stage 2 ("figures entered")
+        biz.put("/api/financials", json={"revenue": 0, "costOfSales": 0, "operatingExpenses": 0})
+        assert biz.get("/api/dashboard").json()["steps"][1]["progressPercent"] == 0
+        # real figures do
+        biz.put("/api/financials", json={"revenue": 500, "costOfSales": 100, "operatingExpenses": 50})
+        assert biz.get("/api/dashboard").json()["steps"][1]["progressPercent"] == 100
+
+        # run one engagement to completion, then a fresh invite must wipe the stale figures + documents
+        biz.post("/api/engagement/invite", json={"auditorEmail": "i-aud@x.lk"})
+        assert biz.get("/api/financials").json()["inputs"] is None  # invite already cleared them
+        eng_id = aud.get("/api/auditor/engagements", params={"status": "invited"}).json()[0]["id"]
+        aud.post(f"/api/auditor/engagements/{eng_id}/accept")
+        aud.put(f"/api/auditor/engagements/{eng_id}/checklist", json={"items": [{"name": "TB", "category": "Trial Balance", "description": "", "required": True}]})
+        doc = biz.post("/api/documents", files={"file": ("tb.pdf", PDF, "application/pdf")}).json()
+        biz.put("/api/financials", json={"revenue": 900, "costOfSales": 100, "operatingExpenses": 50})
+        biz.post("/api/handover")
+        aud.post(f"/api/auditor/documents/{doc['id']}/verify")
+        assert aud.post(f"/api/auditor/engagements/{eng_id}/approve").json()["status"] == "approved"
+        assert biz.get("/api/financials").json()["inputs"] is not None  # still there while the cycle is live/approved
+
+        # inviting the next auditor is a new cycle: stale documents + figures are cleared
+        biz.post("/api/engagement/invite", json={"auditorEmail": "i-aud@x.lk"})
+        assert biz.get("/api/financials").json()["inputs"] is None
+        assert biz.get("/api/documents").json()["documents"] == []
+        assert biz.get("/api/dashboard").json()["steps"][1]["progressPercent"] == 0

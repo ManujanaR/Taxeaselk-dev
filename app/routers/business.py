@@ -104,6 +104,37 @@ def get_engagement(co: Company = Depends(current_company), db: Session = Depends
     )
 
 
+class DirectoryAuditor(CamelModel):
+    id: str
+    name: str
+    firm: str
+    email: str
+    average_rating: float | None
+    total_reviews: int
+    completed_audits: int
+
+
+@router.get("/auditors/directory", response_model=list[DirectoryAuditor])
+def auditor_directory(search: str = "", co: Company = Depends(current_company), db: Session = Depends(get_db)):
+    """Every registered auditor, ranked by rating so a business can pick without knowing an email."""
+    rev = db.query(Engagement.auditor_id, func.avg(AuditorReview.rating), func.count(AuditorReview.id)) \
+        .join(AuditorReview, AuditorReview.engagement_id == Engagement.id).group_by(Engagement.auditor_id).all()
+    ratings = {aid: (avg, cnt) for aid, avg, cnt in rev}
+    completed = dict(db.query(Engagement.auditor_id, func.count(Engagement.id))
+                     .filter(Engagement.status == "approved").group_by(Engagement.auditor_id).all())
+    q = db.query(AuditorProfile).join(User, User.id == AuditorProfile.user_id)
+    if search.strip():
+        s = f"%{search.strip().lower()}%"
+        q = q.filter(func.lower(User.full_name).like(s) | func.lower(AuditorProfile.firm_name).like(s) | func.lower(User.email).like(s))
+    out = [DirectoryAuditor(
+        id=ap.id, name=ap.user.full_name, firm=ap.firm_name, email=ap.user.email,
+        average_rating=round(ratings[ap.id][0], 1) if ap.id in ratings else None,
+        total_reviews=ratings.get(ap.id, (None, 0))[1], completed_audits=completed.get(ap.id, 0),
+    ) for ap in q.all()]
+    out.sort(key=lambda a: (a.average_rating or 0, a.total_reviews, a.completed_audits), reverse=True)
+    return out
+
+
 @router.post("/engagement/invite", response_model=EngagementOut, status_code=201)
 def invite_auditor(payload: InviteIn, co: Company = Depends(current_company), db: Session = Depends(get_db)):
     if live_engagement(db, co.id):

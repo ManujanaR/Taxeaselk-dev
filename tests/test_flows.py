@@ -46,6 +46,12 @@ def test_role_guards(clients):
 def test_full_engagement_flow(clients):
     biz, aud = clients
 
+    # directory lists the registered auditor (ranked; no reviews yet) and is searchable
+    directory = biz.get("/api/auditors/directory").json()
+    assert any(a["email"] == "kl@bdo.lk" and a["completedAudits"] == 0 for a in directory)
+    assert [a["email"] for a in biz.get("/api/auditors/directory", params={"search": "bdo"}).json()] == ["kl@bdo.lk"]
+    assert biz.get("/api/auditors/directory", params={"search": "zzz"}).json() == []
+
     # invite -> notification -> accept
     assert biz.post("/api/engagement/invite", json={"auditorEmail": "nobody@x.lk"}).status_code == 404
     r = biz.post("/api/engagement/invite", json={"auditorEmail": "kl@bdo.lk", "taxYear": "2025/26"})

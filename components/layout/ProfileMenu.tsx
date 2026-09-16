@@ -3,7 +3,7 @@
 import { ReactNode, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronDown, Settings, LogOut, Copy, Check } from "lucide-react";
+import { ChevronDown, Settings, LogOut, Copy, Check, Sparkles } from "lucide-react";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { api } from "@/lib/api/client";
 import { copyText } from "@/lib/format";
@@ -97,6 +97,10 @@ export default function ProfileMenu({ displayName, email, userInitials, userId, 
               <Settings className="h-4 w-4 text-gray-400" />
               {t("common.settings")}
             </Link>
+            <a href="https://taxeaselk-marketing.vercel.app/#pricing" target="_blank" rel="noopener noreferrer" onClick={() => setOpen(false)} className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-gray-600 hover:bg-gray-50">
+              <Sparkles className="h-4 w-4 text-brand-blue" />
+              {t("common.upgradePlan")}
+            </a>
           </div>
 
           <div className="border-t border-gray-100 p-1.5">

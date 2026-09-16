@@ -27,7 +27,9 @@ export default async function AuditorLayout({ children }: { children: React.Reac
     <MobileNavProvider>
     <div className="flex h-screen bg-gray-50">
       <Sidebar className="hidden lg:flex" workspaceLabelKey="sidebar.auditorWorkspace" navItems={navItems} settingsHref="/auditor-settings" badgeHrefs={["/requests", "/auditor-discussions"]} />
-      <MobileDrawer workspaceLabelKey="sidebar.auditorWorkspace" navItems={navItems} settingsHref="/auditor-settings" badgeHrefs={["/requests", "/auditor-discussions"]} />
+      <MobileDrawer workspaceLabelKey="sidebar.auditorWorkspace" navItems={navItems} settingsHref="/auditor-settings" badgeHrefs={["/requests", "/auditor-discussions"]}
+        context={<span className="max-w-[60vw] truncate rounded-lg border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-600 lg:max-w-none">{auditorProfile?.firmName}</span>}
+        extra={<AuditorRankRating />} />
       <div className="flex min-w-0 flex-1 flex-col overflow-x-hidden">
         <TopBar
           roleLabel={<T k="shared.roleAuditor" />}
@@ -38,7 +40,7 @@ export default async function AuditorLayout({ children }: { children: React.Reac
           settingsHref="/auditor-settings"
           extraContent={<AuditorRankRating />}
           leftContent={
-            <span className="max-w-[40vw] truncate rounded-lg border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-600 sm:max-w-none">{auditorProfile?.firmName}</span>
+            <span className="max-w-[60vw] truncate rounded-lg border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-600 lg:max-w-none">{auditorProfile?.firmName}</span>
           }
         />
         <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">{children}</main>

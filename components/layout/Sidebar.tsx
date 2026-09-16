@@ -33,6 +33,7 @@ interface SidebarProps {
   settingsHref?: string; // used to link the logo back to the active dashboard
   badgeHrefs?: string[]; // hrefs that should show live badge counts from API
   className?: string; // wrapper overrides — e.g. "hidden lg:flex" for the desktop rail
+  header?: ReactNode; // shown under the logo — e.g. the company/firm context in the mobile drawer
   footer?: ReactNode; // pinned to the bottom of the rail — e.g. the language switcher in the mobile drawer
 }
 
@@ -45,6 +46,7 @@ export default function Sidebar({
   settingsHref = "/dashboard",
   badgeHrefs,
   className,
+  header,
   footer,
 }: SidebarProps) {
   const pathname = usePathname();
@@ -93,6 +95,8 @@ export default function Sidebar({
           </div>
         </Link>
       </div>
+
+      {header}
 
       <nav className="flex-1 space-y-1 px-3 py-4">
         <p className="px-3 pb-2 text-xs font-medium uppercase tracking-wide text-gray-400">

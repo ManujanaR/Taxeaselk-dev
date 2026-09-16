@@ -52,17 +52,17 @@ export default function AuditorRankRating() {
         className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-sm font-medium text-amber-800 hover:bg-amber-100"
       >
         <ShieldCheck className="h-4 w-4 shrink-0 text-amber-600" />
-        <span className="hidden sm:inline">{rating ? t("shared.verifiedAuditorBadge") : t("shared.newAuditorBadge")}</span>
+        <span>{rating ? t("shared.verifiedAuditorBadge") : t("shared.newAuditorBadge")}</span>
         <span className="flex items-center gap-0.5 font-bold">
           <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-500" />
           {rating ? rating.toFixed(1) : "—"}
         </span>
-        <span className="hidden text-xs text-amber-700 sm:inline">({data?.totalReviews ?? 0})</span>
+        <span className="text-xs text-amber-700">({data?.totalReviews ?? 0})</span>
         <ChevronDown className="h-3.5 w-3.5 text-amber-600" />
       </button>
 
       {open && (
-        <div className="absolute right-0 z-40 mt-2 w-[calc(100vw-2rem)] max-w-xs rounded-card border border-gray-100 bg-white p-4 shadow-lg sm:w-80 sm:max-w-none">
+        <div className="absolute left-0 z-40 mt-2 w-[calc(100vw-2rem)] max-w-xs rounded-card border border-gray-100 bg-white p-4 shadow-lg lg:left-auto lg:right-0 lg:w-80 lg:max-w-none">
           <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">{t("shared.reputation")}</p>
           <div className="mt-2 flex items-end gap-2">
             <span className="text-3xl font-extrabold text-gray-900">{rating ? rating.toFixed(1) : "—"}</span>

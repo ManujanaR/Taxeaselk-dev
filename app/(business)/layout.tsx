@@ -27,7 +27,8 @@ export default async function BusinessLayout({ children }: { children: React.Rea
     <MobileNavProvider>
     <div className="flex h-screen bg-brand-bgblue">
       <Sidebar className="hidden lg:flex" workspaceLabelKey="sidebar.companyUser" navItems={navItems} settingsHref="/settings" badgeHrefs={["/auditor-review", "/discussions"]} />
-      <MobileDrawer workspaceLabelKey="sidebar.companyUser" navItems={navItems} settingsHref="/settings" badgeHrefs={["/auditor-review", "/discussions"]} />
+      <MobileDrawer workspaceLabelKey="sidebar.companyUser" navItems={navItems} settingsHref="/settings" badgeHrefs={["/auditor-review", "/discussions"]}
+        context={<BusinessTopBarBadges companyName={company?.companyName ?? ""} financialYear={company?.financialYear ?? ""} />} />
       <div className="flex min-w-0 flex-1 flex-col overflow-x-hidden">
         <TopBar
           roleLabel={<T k="shared.roleAdmin" />}

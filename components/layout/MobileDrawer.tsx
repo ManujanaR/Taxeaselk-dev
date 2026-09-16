@@ -1,22 +1,32 @@
 "use client";
 
-import { useEffect } from "react";
+import { ReactNode, useEffect } from "react";
 import { usePathname } from "next/navigation";
-import { X } from "lucide-react";
+import { HelpCircle, X } from "lucide-react";
 import Sidebar, { NavItem } from "@/components/layout/Sidebar";
 import LanguageToggle from "@/components/layout/LanguageToggle";
 import { useMobileNav } from "@/lib/mobile-nav";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { TranslationKey } from "@/lib/i18n/translations";
 
 // Below `lg`, navigation lives in a left slide-in drawer opened by the TopBar
-// hamburger. Reuses <Sidebar> so the nav stays identical to the desktop rail.
-export default function MobileDrawer(props: {
+// hamburger. Reuses <Sidebar> so the nav stays identical to the desktop rail,
+// and gives the top-bar's desktop-only chrome (context, rating, help, language)
+// a home on mobile.
+export default function MobileDrawer({
+  context,
+  extra,
+  ...props
+}: {
   workspaceLabelKey: TranslationKey;
   navItems: NavItem[];
   settingsHref?: string;
   badgeHrefs?: string[];
+  context?: ReactNode; // company/FY (business) or firm (auditor) — same node as the TopBar
+  extra?: ReactNode; // auditor rating pill
 }) {
   const { open, setOpen } = useMobileNav();
+  const { t } = useLanguage();
   const pathname = usePathname();
 
   // Close on navigation.
@@ -43,7 +53,32 @@ export default function MobileDrawer(props: {
         >
           <X className="h-5 w-5" />
         </button>
-        <Sidebar {...props} footer={<div className="border-t border-gray-100 p-4"><LanguageToggle /></div>} />
+        <Sidebar
+          {...props}
+          header={
+            context || extra ? (
+              // Context + rating sit up top so the rating's downward popover has room.
+              <div className="space-y-2 border-b border-gray-100 px-4 py-3">
+                {context && <div className="flex flex-wrap items-center gap-2">{context}</div>}
+                {extra}
+              </div>
+            ) : undefined
+          }
+          footer={
+            <div className="space-y-3 border-t border-gray-100 p-4">
+              <a
+                href="https://taxeaselk-marketing.vercel.app/#contact"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 text-sm text-gray-600 hover:text-brand-blue"
+              >
+                <HelpCircle className="h-4 w-4" />
+                {t("common.help")}
+              </a>
+              <LanguageToggle />
+            </div>
+          }
+        />
       </div>
     </div>
   );

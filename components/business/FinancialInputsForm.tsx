@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Sparkles, Save } from "lucide-react";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
-import { Field, Input, Select } from "@/components/ui/Input";
+import { Field, Input } from "@/components/ui/Input";
 import { extractFinancials, saveFinancials } from "@/lib/api/business";
 import { errorMessage, toast } from "@/lib/toast";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
@@ -35,17 +35,16 @@ export default function FinancialInputsForm({ initial, documents }: { initial: F
   const [form, setForm] = useState<Draft>(toDraft(initial));
   const [confidence, setConfidence] = useState<Partial<Record<string, number>>>({});
   const [notes, setNotes] = useState("");
-  const [docId, setDocId] = useState(initial?.sourceDocumentId ?? documents[0]?.id ?? "");
   const [extracting, setExtracting] = useState(false);
   const [saving, setSaving] = useState(false);
 
   async function extract() {
-    if (!docId) return toast.error(t("bizcomp.financialInputsForm.uploadFirstToast"));
+    if (!documents.length) return toast.error(t("bizcomp.financialInputsForm.uploadFirstToast"));
     setExtracting(true);
     try {
-      const r = await extractFinancials(docId);
+      const r = await extractFinancials();
       setForm((f) => {
-        const next = { ...f, sourceDocumentId: docId };
+        const next = { ...f };
         for (const [k] of FIELDS) if (r.inputs[k] != null) next[k] = String(r.inputs[k]);
         return next;
       });
@@ -83,14 +82,9 @@ export default function FinancialInputsForm({ initial, documents }: { initial: F
           <p className="font-semibold text-gray-800">{t("bizcomp.financialInputsForm.heading")}</p>
           <p className="text-xs text-gray-500">{t("bizcomp.financialInputsForm.subheading")}</p>
         </div>
-        <div className="flex items-center gap-2">
-          <Select value={docId} onChange={(e) => setDocId(e.target.value)} className="w-64" disabled={!documents.length}>
-            {documents.length ? documents.map((d) => <option key={d.id} value={d.id}>{d.name}</option>) : <option value="">{t("bizcomp.financialInputsForm.noDocuments")}</option>}
-          </Select>
-          <Button type="button" variant="secondary" icon={<Sparkles className="h-4 w-4 text-brand-blue" />} onClick={extract} disabled={extracting || !documents.length}>
-            {extracting ? t("bizcomp.financialInputsForm.readingDocument") : t("bizcomp.financialInputsForm.extractWithAi")}
-          </Button>
-        </div>
+        <Button type="button" variant="secondary" title={t("bizcomp.financialInputsForm.extractHint")} icon={<Sparkles className="h-4 w-4 text-brand-blue" />} onClick={extract} disabled={extracting || !documents.length}>
+          {extracting ? t("bizcomp.financialInputsForm.readingDocument") : t("bizcomp.financialInputsForm.extractWithAi")}
+        </Button>
       </div>
 
       <form onSubmit={save} className="mt-5">

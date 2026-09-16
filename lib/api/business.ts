@@ -28,7 +28,7 @@ export const replaceDocument = (id: string, file: File) => {
 
 export const getFinancials = () => api<FinancialsView>("/api/financials");
 export const saveFinancials = (payload: FinancialInputs) => api<FinancialsView>("/api/financials", { method: "PUT", json: payload });
-export const extractFinancials = (documentId: string) => api<ExtractResult>("/api/financials/extract", { method: "POST", json: { documentId } });
+export const extractFinancials = () => api<ExtractResult>("/api/financials/extract", { method: "POST" });
 export const submitHandover = () => api<void>("/api/handover", { method: "POST" });
 
 export const getRequests = () => api<RfiRequest[]>("/api/requests");

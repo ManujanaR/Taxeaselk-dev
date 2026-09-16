@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { X } from "lucide-react";
 import Sidebar, { NavItem } from "@/components/layout/Sidebar";
+import LanguageToggle from "@/components/layout/LanguageToggle";
 import { useMobileNav } from "@/lib/mobile-nav";
 import { TranslationKey } from "@/lib/i18n/translations";
 
@@ -42,7 +43,7 @@ export default function MobileDrawer(props: {
         >
           <X className="h-5 w-5" />
         </button>
-        <Sidebar {...props} />
+        <Sidebar {...props} footer={<div className="border-t border-gray-100 p-4"><LanguageToggle /></div>} />
       </div>
     </div>
   );

@@ -49,10 +49,10 @@ export default function ProfileMenu({ displayName, email, userInitials, userId, 
 
   return (
     <div ref={containerRef} className="relative">
-      <button onClick={() => setOpen((o) => !o)} className="flex items-center gap-2 rounded-lg px-2 py-1 hover:bg-gray-50">
-        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-200 text-xs font-semibold text-gray-600">{userInitials}</div>
-        <span className="text-sm font-medium text-gray-700">{roleLabel}</span>
-        <ChevronDown className="h-4 w-4 text-gray-400" />
+      <button onClick={() => setOpen((o) => !o)} className="flex items-center gap-2 rounded-lg px-1 py-1 hover:bg-gray-50 sm:px-2">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gray-200 text-xs font-semibold text-gray-600">{userInitials}</div>
+        <span className="hidden text-sm font-medium text-gray-700 lg:inline">{roleLabel}</span>
+        <ChevronDown className="hidden h-4 w-4 text-gray-400 lg:block" />
       </button>
 
       {open && (

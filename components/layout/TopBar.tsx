@@ -36,7 +36,7 @@ export default function TopBar({
 
   return (
     <header className="flex h-16 shrink-0 items-center justify-between gap-2 border-b border-gray-100 bg-white px-4 sm:px-6">
-      <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+      <div className="flex min-w-0 items-center gap-2 lg:gap-3">
         <button
           onClick={() => setOpen(true)}
           aria-label="Open menu"
@@ -44,12 +44,15 @@ export default function TopBar({
         >
           <Menu className="h-5 w-5" />
         </button>
-        {leftContent}
-        <LanguageToggle />
+        {/* Context pill + language switch belong to the desktop bar; on mobile they live in the drawer. */}
+        <div className="hidden min-w-0 items-center gap-3 lg:flex">
+          {leftContent}
+          <LanguageToggle />
+        </div>
       </div>
 
       <div className="flex shrink-0 items-center gap-2 sm:gap-4">
-        {extraContent}
+        <div className="hidden lg:block">{extraContent}</div>
 
         <NotificationBell />
 
@@ -59,7 +62,7 @@ export default function TopBar({
           rel="noopener noreferrer"
           aria-label={t("common.help")}
           title="TaxEaseLK Help & Contact"
-          className="hidden text-gray-400 transition-colors hover:text-gray-600 sm:block"
+          className="hidden text-gray-400 transition-colors hover:text-gray-600 lg:block"
         >
           <HelpCircle className="h-5 w-5" />
         </a>

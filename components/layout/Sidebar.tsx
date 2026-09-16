@@ -33,6 +33,7 @@ interface SidebarProps {
   settingsHref?: string; // used to link the logo back to the active dashboard
   badgeHrefs?: string[]; // hrefs that should show live badge counts from API
   className?: string; // wrapper overrides — e.g. "hidden lg:flex" for the desktop rail
+  footer?: ReactNode; // pinned to the bottom of the rail — e.g. the language switcher in the mobile drawer
 }
 
 // One Sidebar component drives both the Business and Auditor portals —
@@ -44,6 +45,7 @@ export default function Sidebar({
   settingsHref = "/dashboard",
   badgeHrefs,
   className,
+  footer,
 }: SidebarProps) {
   const pathname = usePathname();
   const { t } = useLanguage();
@@ -130,6 +132,7 @@ export default function Sidebar({
           );
         })}
       </nav>
+      {footer}
     </aside>
   );
 }

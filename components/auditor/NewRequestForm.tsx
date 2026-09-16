@@ -35,7 +35,7 @@ export default function NewRequestForm({ engagements, onClose, onCreated }: { en
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <Card className="w-full max-w-lg p-0">
+      <Card className="flex max-h-[90vh] w-full max-w-lg flex-col p-0">
         <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
           <div>
             <h2 className="text-base font-bold text-gray-900">{t("audcomp.requestsManager.newRequest")}</h2>
@@ -43,7 +43,7 @@ export default function NewRequestForm({ engagements, onClose, onCreated }: { en
           </div>
           <button onClick={onClose} className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100"><X className="h-5 w-5" /></button>
         </div>
-        <form onSubmit={submit} className="space-y-4 p-6">
+        <form onSubmit={submit} className="flex-1 space-y-4 overflow-y-auto p-6">
           {engagements.length > 1 ? (
             <Field label={t("audcomp.newRequest.clientCompany")} required>
               <Select value={form.engagementId} onChange={(e) => setForm({ ...form, engagementId: e.target.value })}>
@@ -56,7 +56,7 @@ export default function NewRequestForm({ engagements, onClose, onCreated }: { en
             </Field>
           ) : null}
           <Field label={t("audcomp.newRequest.whatDoYouNeed")} required><Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required placeholder={t("audcomp.newRequest.titlePlaceholder")} /></Field>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <Field label={t("audcomp.newRequest.category")}><Select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>{REQUEST_CATEGORIES.map((c) => <option key={c}>{c}</option>)}</Select></Field>
             <Field label={t("audcomp.newRequest.priority")}><Select value={form.priority} onChange={(e) => setForm({ ...form, priority: e.target.value })}><option>HIGH</option><option>MEDIUM</option><option>LOW</option></Select></Field>
             <Field label={t("audcomp.newRequest.dueDate")}><Input type="date" value={form.dueDate} onChange={(e) => setForm({ ...form, dueDate: e.target.value })} /></Field>

@@ -1,9 +1,11 @@
 import { LayoutGrid, Building2, Inbox, MessagesSquare, ScrollText, Settings as SettingsIcon } from "lucide-react";
 import Sidebar, { NavItem } from "@/components/layout/Sidebar";
+import MobileDrawer from "@/components/layout/MobileDrawer";
 import TopBar from "@/components/layout/TopBar";
 import T from "@/components/layout/T";
 import AuditorRankRating from "@/components/layout/AuditorRankRating";
 import { formattedUserId, getSession, initials } from "@/lib/auth";
+import { MobileNavProvider } from "@/lib/mobile-nav";
 import { RealtimeProvider } from "@/lib/realtime";
 
 const navItems: NavItem[] = [
@@ -22,9 +24,11 @@ export default async function AuditorLayout({ children }: { children: React.Reac
 
   return (
     <RealtimeProvider>
+    <MobileNavProvider>
     <div className="flex h-screen bg-gray-50">
-      <Sidebar workspaceLabelKey="sidebar.auditorWorkspace" navItems={navItems} settingsHref="/auditor-settings" badgeHrefs={["/requests", "/auditor-discussions"]} />
-      <div className="flex min-w-0 flex-1 flex-col">
+      <Sidebar className="hidden lg:flex" workspaceLabelKey="sidebar.auditorWorkspace" navItems={navItems} settingsHref="/auditor-settings" badgeHrefs={["/requests", "/auditor-discussions"]} />
+      <MobileDrawer workspaceLabelKey="sidebar.auditorWorkspace" navItems={navItems} settingsHref="/auditor-settings" badgeHrefs={["/requests", "/auditor-discussions"]} />
+      <div className="flex min-w-0 flex-1 flex-col overflow-x-hidden">
         <TopBar
           roleLabel={<T k="shared.roleAuditor" />}
           userInitials={initials(user.fullName)}
@@ -34,12 +38,13 @@ export default async function AuditorLayout({ children }: { children: React.Reac
           settingsHref="/auditor-settings"
           extraContent={<AuditorRankRating />}
           leftContent={
-            <span className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-600">{auditorProfile?.firmName}</span>
+            <span className="max-w-[40vw] truncate rounded-lg border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-600 sm:max-w-none">{auditorProfile?.firmName}</span>
           }
         />
-        <main className="flex-1 overflow-y-auto p-8">{children}</main>
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">{children}</main>
       </div>
     </div>
+    </MobileNavProvider>
     </RealtimeProvider>
   );
 }

@@ -117,15 +117,15 @@ export default function AuditorRequests({ requests }: { requests: RfiRequest[] }
 
       {active && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <Card className="w-full max-w-lg p-0">
-            <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
-              <div>
-                <h2 className="text-base font-bold text-gray-900">{active.referenceCode} · {active.title}</h2>
+          <Card className="flex max-h-[90vh] w-full max-w-lg flex-col p-0">
+            <div className="flex shrink-0 items-center justify-between gap-3 border-b border-gray-100 px-6 py-4">
+              <div className="min-w-0">
+                <h2 className="truncate text-base font-bold text-gray-900">{active.referenceCode} · {active.title}</h2>
                 <p className="text-xs text-gray-500">{active.description}</p>
               </div>
               <button onClick={() => setActive(null)} className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100"><X className="h-5 w-5" /></button>
             </div>
-            <form onSubmit={submit} className="space-y-4 p-6">
+            <form onSubmit={submit} className="flex-1 space-y-4 overflow-y-auto p-6">
               <textarea rows={4} required value={note} onChange={(e) => setNote(e.target.value)} placeholder={t("bizcomp.auditorRequests.answerPlaceholder")} className="w-full rounded-lg border border-gray-300 p-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-brand-blue focus:outline-none focus:ring-1 focus:ring-brand-blue" />
               <label className="flex cursor-pointer items-center gap-2 text-sm text-gray-600">
                 <Paperclip className="h-4 w-4" />

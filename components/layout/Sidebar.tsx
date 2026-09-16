@@ -32,6 +32,7 @@ interface SidebarProps {
   userInitials?: string;
   settingsHref?: string; // used to link the logo back to the active dashboard
   badgeHrefs?: string[]; // hrefs that should show live badge counts from API
+  className?: string; // wrapper overrides — e.g. "hidden lg:flex" for the desktop rail
 }
 
 // One Sidebar component drives both the Business and Auditor portals —
@@ -42,6 +43,7 @@ export default function Sidebar({
   navItems,
   settingsHref = "/dashboard",
   badgeHrefs,
+  className,
 }: SidebarProps) {
   const pathname = usePathname();
   const { t } = useLanguage();
@@ -63,7 +65,7 @@ export default function Sidebar({
   }, [badgeHrefs?.join(","), version]);
 
   return (
-    <aside className="flex h-screen w-64 shrink-0 flex-col border-r border-gray-100 bg-white">
+    <aside className={clsx("flex h-screen w-64 shrink-0 flex-col border-r border-gray-100 bg-white", className)}>
       <div className="border-b border-gray-100 px-5 py-4">
         <Link
           href={settingsHref.includes("auditor") ? "/auditor-dashboard" : "/dashboard"}

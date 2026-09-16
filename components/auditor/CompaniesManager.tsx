@@ -68,14 +68,14 @@ export default function CompaniesManager({ engagements, initialStatus }: { engag
             {tabItem.id === "invited" && invitations > 0 && <span className="ml-1 rounded-full bg-white/30 px-1.5">{invitations}</span>}
           </button>
         ))}
-        <div className="relative ml-auto">
+        <div className="relative w-full sm:ml-auto sm:w-64">
           <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-          <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t("audcomp.companies.searchPlaceholder")} className="w-64 rounded-lg border border-gray-200 py-2 pl-8 pr-3 text-sm focus:border-brand-blue focus:outline-none" />
+          <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t("audcomp.companies.searchPlaceholder")} className="w-full rounded-lg border border-gray-200 py-2 pl-8 pr-3 text-sm focus:border-brand-blue focus:outline-none" />
         </div>
       </div>
 
-      <Card className="mt-4 overflow-hidden">
-        <table className="w-full text-sm">
+      <Card className="mt-4 overflow-x-auto">
+        <table className="w-full min-w-[760px] text-sm">
           <thead className="bg-gray-50 text-left text-xs uppercase tracking-wide text-gray-500">
             <tr>
               <th className="px-4 py-3">{t("common.company")}</th>

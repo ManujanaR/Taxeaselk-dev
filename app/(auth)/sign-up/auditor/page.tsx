@@ -64,7 +64,7 @@ export default function AuditorSignUpPage() {
           <Field label={t("auth.field.email")}>
             <Input type="email" value={form.email} onChange={(e) => update("email", e.target.value)} placeholder={t("auth.signUp.auditor.emailPlaceholder")} required autoComplete="email" />
           </Field>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Field label={t("auth.field.password")}>
               <Input type="password" value={form.password} onChange={(e) => update("password", e.target.value)} placeholder={t("auth.signUp.passwordPlaceholder")} required autoComplete="new-password" />
             </Field>

@@ -83,8 +83,8 @@ export default function DocumentsManager({ data }: { data: DocumentsView }) {
         <AuditorDocumentChecklist checklist={data.checklist} onPickItem={(item) => { setTarget(item); fileInputRef.current?.click(); }} />
       </div>
 
-      <Card className="mt-6 overflow-hidden">
-        <table className="w-full text-sm">
+      <Card className="mt-6 overflow-x-auto">
+        <table className="w-full min-w-[640px] text-sm">
           <thead className="bg-gray-50 text-left text-xs uppercase tracking-wide text-gray-500">
             <tr>
               <th className="px-4 py-3">{t("bizcomp.documentsManager.colDocument")}</th>
@@ -110,7 +110,7 @@ export default function DocumentsManager({ data }: { data: DocumentsView }) {
               <tr key={d.id} className="hover:bg-gray-50/60">
                 <td className="px-4 py-3">
                   <span className="flex items-center gap-2 font-medium text-gray-800">
-                    <FileText className="h-4 w-4 text-gray-400" /> {d.name}
+                    <FileText className="h-4 w-4 shrink-0 text-gray-400" /> <span className="max-w-[220px] truncate">{d.name}</span>
                   </span>
                 </td>
                 <td className="px-4 py-3 text-gray-600">{d.docType}</td>

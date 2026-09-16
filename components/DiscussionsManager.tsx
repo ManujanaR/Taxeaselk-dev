@@ -216,12 +216,12 @@ export default function DiscussionsManager({ role, initialThreads, userId, engag
 
       {newOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <Card className="w-full max-w-lg p-0">
-            <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
+          <Card className="flex max-h-[90vh] w-full max-w-lg flex-col p-0">
+            <div className="flex shrink-0 items-center justify-between border-b border-gray-100 px-6 py-4">
               <h2 className="text-base font-bold text-gray-900">{t("shared.newDiscussionHeading")}</h2>
               <button onClick={() => setNewOpen(false)} className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100"><X className="h-5 w-5" /></button>
             </div>
-            <form onSubmit={createThread} className="space-y-4 p-6">
+            <form onSubmit={createThread} className="flex-1 space-y-4 overflow-y-auto p-6">
               {role === "auditor" && (
                 <Field label={t("shared.clientCompany")} required>
                   <Select value={draft.engagementId} onChange={(e) => setDraft({ ...draft, engagementId: e.target.value })}>

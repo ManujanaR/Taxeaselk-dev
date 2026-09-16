@@ -15,8 +15,8 @@ export default function FinancialsView({ data, documents }: { data: FinancialsDa
   const c = data.computed;
   return (
     <div>
-      <div className="flex items-start justify-between gap-4">
-        <div>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="min-w-0">
           <h1 className="text-2xl font-bold text-gray-900">
             <T k="pages.financials.title" />
           </h1>
@@ -33,7 +33,7 @@ export default function FinancialsView({ data, documents }: { data: FinancialsDa
 
       {c ? (
         <>
-          <div className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-5">
+          <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-5">
             <StatCard label={t("bizcomp.financialsView.statGrossTurnover")} value={lkr(c.grossProfit + (data.inputs?.costOfSales ?? 0), { compact: true })} hint={t("bizcomp.financialsView.hintCommercialInflows")} />
             <StatCard label={t("bizcomp.financialsView.statCostOfSales")} value={lkr(data.inputs?.costOfSales, { compact: true })} hint={t("bizcomp.financialsView.hintDirectProductionCosts")} />
             <StatCard label={t("bizcomp.financialsView.statGrossProfit")} value={lkr(c.grossProfit, { compact: true })} hint={t("bizcomp.financialsView.hintTradingMargin", { percent: c.grossMarginPercent })} />

@@ -48,15 +48,15 @@ export default function RateAuditorModal({ auditorName, auditorFirm, onClose }: 
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-      <Card className="w-full max-w-xl overflow-hidden p-0 shadow-2xl">
-        <div className="flex items-center justify-between border-b border-gray-100 bg-gradient-to-r from-blue-50/70 to-white px-6 py-4">
-          <div className="flex items-center gap-3">
+      <Card className="flex max-h-[90vh] w-full max-w-xl flex-col overflow-hidden p-0 shadow-2xl">
+        <div className="flex shrink-0 items-center justify-between border-b border-gray-100 bg-gradient-to-r from-blue-50/70 to-white px-6 py-4">
+          <div className="flex min-w-0 items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-blue/10 ring-4 ring-blue-50">
               <Star className="h-5 w-5 fill-amber-400 text-amber-500" />
             </div>
-            <div>
+            <div className="min-w-0">
               <h2 className="text-base font-bold text-gray-900">{t("bizcomp.rateAuditorModal.title")}</h2>
-              <p className="text-xs text-gray-500">
+              <p className="truncate text-xs text-gray-500">
                 {auditorName} • {auditorFirm}
               </p>
             </div>
@@ -66,7 +66,7 @@ export default function RateAuditorModal({ auditorName, auditorFirm, onClose }: 
           </button>
         </div>
 
-        <form onSubmit={submit} className="space-y-6 p-6">
+        <form onSubmit={submit} className="flex-1 space-y-6 overflow-y-auto p-6">
           <div className="rounded-xl border border-gray-100 bg-gray-50/80 p-5 text-center">
             <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-500">{t("bizcomp.rateAuditorModal.overallSatisfaction")}</p>
             <div className="flex items-center justify-center gap-2">
@@ -79,7 +79,7 @@ export default function RateAuditorModal({ auditorName, auditorFirm, onClose }: 
             <p className="mt-2 text-xs font-medium text-brand-blue">{t(LABEL_KEYS[hover || rating])}</p>
           </div>
 
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             {DIMENSIONS.map(([key, label, hint]) => (
               <div key={key} className="rounded-lg border border-gray-100 bg-white p-3 shadow-sm">
                 <div className="mb-1 flex items-center justify-between">

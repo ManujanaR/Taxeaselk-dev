@@ -71,7 +71,7 @@ export default function RequestCard({ request: r, companyName, companyHref, onCh
           </p>
           {r.description && <p className="mt-2 text-sm text-gray-600">{r.description}</p>}
         </div>
-        <div className="flex shrink-0 gap-2">
+        <div className="flex shrink-0 flex-wrap gap-2">
           {r.status === "responded" && (
             <>
               <Button variant="success" className="px-3 py-1.5 text-xs" icon={<CheckCircle2 className="h-3.5 w-3.5" />} disabled={busy} onClick={() => act(() => resolveRequest(r.id), t("audcomp.toast.requestResolved", { ref: r.referenceCode }))}>{t("audcomp.actions.resolve")}</Button>
@@ -102,12 +102,12 @@ export default function RequestCard({ request: r, companyName, companyHref, onCh
 
       {revising && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <Card className="w-full max-w-lg p-0">
-            <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
+          <Card className="flex max-h-[90vh] w-full max-w-lg flex-col p-0">
+            <div className="flex shrink-0 items-center justify-between border-b border-gray-100 px-6 py-4">
               <h2 className="text-base font-bold text-gray-900">{t("audcomp.requestCard.sendBackTitle", { ref: r.referenceCode })}</h2>
               <button onClick={() => setRevising(false)} className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100"><X className="h-5 w-5" /></button>
             </div>
-            <div className="space-y-4 p-6">
+            <div className="flex-1 space-y-4 overflow-y-auto p-6">
               <textarea rows={4} value={note} onChange={(e) => setNote(e.target.value)} placeholder={t("audcomp.requestCard.sendBackPlaceholder")} className="w-full rounded-lg border border-gray-300 p-2.5 text-sm focus:border-brand-blue focus:outline-none focus:ring-1 focus:ring-brand-blue" />
               <div className="flex justify-end gap-2">
                 <Button variant="secondary" onClick={() => setRevising(false)} disabled={busy}>{t("common.cancel")}</Button>

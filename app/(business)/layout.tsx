@@ -1,9 +1,11 @@
 import { LayoutGrid, FileText, DollarSign, UserCheck, MessagesSquare, Settings as SettingsIcon } from "lucide-react";
 import Sidebar, { NavItem } from "@/components/layout/Sidebar";
+import MobileDrawer from "@/components/layout/MobileDrawer";
 import TopBar from "@/components/layout/TopBar";
 import T from "@/components/layout/T";
 import BusinessTopBarBadges from "@/components/layout/BusinessTopBarBadges";
 import { formattedUserId, getSession, initials } from "@/lib/auth";
+import { MobileNavProvider } from "@/lib/mobile-nav";
 import { RealtimeProvider } from "@/lib/realtime";
 
 const navItems: NavItem[] = [
@@ -22,9 +24,11 @@ export default async function BusinessLayout({ children }: { children: React.Rea
 
   return (
     <RealtimeProvider>
+    <MobileNavProvider>
     <div className="flex h-screen bg-brand-bgblue">
-      <Sidebar workspaceLabelKey="sidebar.companyUser" navItems={navItems} settingsHref="/settings" badgeHrefs={["/auditor-review", "/discussions"]} />
-      <div className="flex min-w-0 flex-1 flex-col">
+      <Sidebar className="hidden lg:flex" workspaceLabelKey="sidebar.companyUser" navItems={navItems} settingsHref="/settings" badgeHrefs={["/auditor-review", "/discussions"]} />
+      <MobileDrawer workspaceLabelKey="sidebar.companyUser" navItems={navItems} settingsHref="/settings" badgeHrefs={["/auditor-review", "/discussions"]} />
+      <div className="flex min-w-0 flex-1 flex-col overflow-x-hidden">
         <TopBar
           roleLabel={<T k="shared.roleAdmin" />}
           userInitials={initials(user.fullName)}
@@ -34,9 +38,10 @@ export default async function BusinessLayout({ children }: { children: React.Rea
           settingsHref="/settings"
           leftContent={<BusinessTopBarBadges companyName={company?.companyName ?? ""} financialYear={company?.financialYear ?? ""} />}
         />
-        <main className="flex-1 overflow-y-auto p-8">{children}</main>
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">{children}</main>
       </div>
     </div>
+    </MobileNavProvider>
     </RealtimeProvider>
   );
 }

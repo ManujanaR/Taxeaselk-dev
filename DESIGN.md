@@ -4,9 +4,12 @@ name: TaxEaseLK
 description: >-
   Visual foundation for TaxEaseLK — a clean, soft, information-dense finance SaaS
   with one confident blue brand accent and a disciplined five-colour status system.
-omitted:
-  - Layout & Spacing   # TODO — spacing scale, grid & alignment not yet documented
-  - Responsiveness     # TODO — breakpoints & responsive rules not yet documented
+
+breakpoints:   # Tailwind defaults, mobile-first. `lg` is the desktop-shell boundary.
+  sm: 640px
+  md: 768px
+  lg: 1024px   # sidebar rail appears; below this, nav is a slide-in drawer
+  xl: 1280px
 
 colors:
   # Brand — tailwind.config.ts (sampled from Figma)
@@ -91,6 +94,33 @@ reserved for numbers and titles. Uppercase `overline` micro-labels and `mono` re
 codes add finance-app texture. Base body text colour is a deep indigo `#2323a1` (globals.css),
 though components usually override to the gray `text-*` tokens.
 
+## Layout & Spacing
+
+Mobile-first and responsive at every screen size (phone → desktop). Tailwind default
+breakpoints; **`lg` (1024px) is the desktop-shell boundary.** No element may exceed the
+viewport width, and there is never a horizontal page scroll.
+
+- **App shell** — at ≥`lg` a persistent 256px sidebar rail (`hidden lg:flex`) sits beside
+  the content. Below `lg` the rail is replaced by a left **slide-in drawer** opened by a
+  TopBar hamburger (`lg:hidden`), over a `bg-black/50` backdrop; it closes on backdrop
+  click, `Esc`, and route change. The content column carries `overflow-x-hidden` as a
+  backstop. Shared open/close state lives in `lib/mobile-nav.tsx` (`useMobileNav`).
+- **Content padding scale** — `p-4 sm:p-6 lg:p-8`. Never a bare `p-8`.
+- **Grids are mobile-first** — never a bare `grid-cols-2/3/4`. Currency / long-value stat
+  tiles base at `grid-cols-1` then step up (`sm:grid-cols-2 md:grid-cols-5`); short
+  count tiles may stay `grid-cols-2 sm:grid-cols-4`. In-modal control rows use
+  `grid-cols-1 sm:grid-cols-3`.
+- **Rows** — header / action / chip / badge rows use `flex flex-wrap gap-2`. The text side
+  gets `min-w-0` + `truncate`; the action side gets `shrink-0`.
+- **Fixed widths** — no bare `w-64`/`w-96` on shrinkable content; use `w-full sm:w-64`.
+  TopBar secondary content condenses on mobile (`hidden sm:inline`, `max-w-[40vw] truncate`).
+- **Overlays** (dropdowns / popovers) — cap width to the viewport:
+  `w-[calc(100vw-2rem)] max-w-xs sm:w-80 sm:max-w-none`. Never a bare `w-96`.
+- **Tables** — always wrap in a scroll container: `Card` uses `overflow-x-auto` (never
+  `overflow-hidden`) and the `<table>` keeps a `min-w-[…]` so columns stay legible and the
+  card scrolls horizontally on small screens. _(Per-table stacked-card mobile layout is a
+  future enhancement.)_
+
 ## Elevation & Depth
 
 Deliberately minimal. Panels use `shadow-card` (`0 1px 2px rgba(16,24,40,0.05)`) — almost
@@ -107,6 +137,10 @@ scrim behind a white `rounded-card` panel.
   ring + brand-blue border (the app-wide focus convention).
 - **Badge** — fully-rounded pill, `caption` type, tone-driven `-bg` tint + foreground.
 - **Toast** — tinted bordered card (success green / error red), `shadow-lg`, lucide icon.
+- **Modal** — scrim `fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4`;
+  the panel is `Card` `flex max-h-[90vh] w-full max-w-* flex-col p-0` with a `shrink-0`
+  header and a scrollable body (`flex-1 overflow-y-auto p-6`) so it always fits a short
+  screen and its action buttons stay reachable. Closes on backdrop / `Esc`.
 - **Icons** — lucide-react throughout; default `h-4 w-4`, `h-3 w-3` inside badges.
 
 ## Do's and Don'ts
@@ -118,3 +152,8 @@ scrim behind a white `rounded-card` panel.
 - **Don't** use heavy shadows or hard borders — the aesthetic is flat and quiet.
 - **Don't** hardcode hex values in components; reference these tokens (or their Tailwind
   equivalents) instead.
+- **Do** design mobile-first: a base style, then `sm:`/`md:`/`lg:` step-ups. Test every
+  screen at 375 / 768 / 1280px.
+- **Don't** ship a bare `grid-cols-2/3/4`, a fixed `w-*` on shrinkable content, an
+  un-wrapped multi-child flex row, a table without `overflow-x-auto`, or an overlay wider
+  than the viewport — these are the exact patterns that broke the site on mobile.

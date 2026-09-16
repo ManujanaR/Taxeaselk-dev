@@ -97,9 +97,9 @@ export default async function DashboardPage() {
                 return (
                   <div key={item.id} className={`rounded-lg border p-3 ${critical ? "border-red-100 bg-red-50" : "border-amber-100 bg-amber-50"}`}>
                     <div className="flex items-start justify-between gap-3">
-                      <div className="flex items-start gap-2">
+                      <div className="flex min-w-0 items-start gap-2">
                         <AlertTriangle className={`mt-0.5 h-4 w-4 shrink-0 ${critical ? "text-status-critical" : "text-status-warning"}`} />
-                        <div>
+                        <div className="min-w-0">
                           <p className={`text-sm font-semibold ${critical ? "text-status-critical" : "text-status-warning"}`}>{item.title}</p>
                           <p className="mt-0.5 text-xs text-gray-500">{item.description}</p>
                         </div>

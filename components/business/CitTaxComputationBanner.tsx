@@ -39,7 +39,7 @@ export default function CitTaxComputationBanner({ computed: c, inputs, rateCateg
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-px border-t border-gray-100 bg-gray-100 md:grid-cols-5">
+      <div className="grid grid-cols-1 gap-px border-t border-gray-100 bg-gray-100 sm:grid-cols-2 md:grid-cols-5">
         {rows.map(([label, value, sign]) => (
           <div key={label} className="bg-white px-4 py-3">
             <p className="text-[11px] text-gray-500">{t(label)}</p>

@@ -1,8 +1,9 @@
 "use client";
 
-import { HelpCircle } from "lucide-react";
+import { HelpCircle, Menu } from "lucide-react";
 import { ReactNode } from "react";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
+import { useMobileNav } from "@/lib/mobile-nav";
 import LanguageToggle from "./LanguageToggle";
 import NotificationBell from "./NotificationBell";
 import ProfileMenu from "./ProfileMenu";
@@ -31,17 +32,24 @@ export default function TopBar({
   extraContent,
 }: TopBarProps) {
   const { t } = useLanguage();
+  const { setOpen } = useMobileNav();
 
   return (
-    <header className="flex h-16 shrink-0 items-center justify-between border-b border-gray-100 bg-white px-6">
-      <div className="flex items-center gap-3">
+    <header className="flex h-16 shrink-0 items-center justify-between gap-2 border-b border-gray-100 bg-white px-4 sm:px-6">
+      <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+        <button
+          onClick={() => setOpen(true)}
+          aria-label="Open menu"
+          className="-ml-1 rounded-lg p-1.5 text-gray-500 hover:bg-gray-100 lg:hidden"
+        >
+          <Menu className="h-5 w-5" />
+        </button>
         {leftContent}
         <LanguageToggle />
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex shrink-0 items-center gap-2 sm:gap-4">
         {extraContent}
-
 
         <NotificationBell />
 
@@ -51,7 +59,7 @@ export default function TopBar({
           rel="noopener noreferrer"
           aria-label={t("common.help")}
           title="TaxEaseLK Help & Contact"
-          className="text-gray-400 hover:text-gray-600 transition-colors"
+          className="hidden text-gray-400 transition-colors hover:text-gray-600 sm:block"
         >
           <HelpCircle className="h-5 w-5" />
         </a>

@@ -56,7 +56,7 @@ export default function ProfileMenu({ displayName, email, userInitials, userId, 
       </button>
 
       {open && (
-        <div className="absolute right-0 z-40 mt-2 w-72 rounded-card border border-gray-100 bg-white shadow-lg">
+        <div className="absolute right-0 z-40 mt-2 w-[calc(100vw-2rem)] max-w-xs rounded-card border border-gray-100 bg-white shadow-lg sm:w-72 sm:max-w-none">
           <div className="flex items-center gap-3 border-b border-gray-100 px-4 py-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-blue text-sm font-semibold text-white">{userInitials}</div>
             <div className="min-w-0 flex-1">

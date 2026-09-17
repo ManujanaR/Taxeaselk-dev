@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     DATABASE_URL: str
     SECRET_KEY: str
     GEMINI_API_KEY: str = ""  # optional; extraction endpoint returns 503 when unset
-    GEMINI_MODEL: str = "gemini-3.8-flash"
+    GEMINI_MODEL: str = "gemini-3.6-flash"  # 3.8-flash is heavily throttled right now; 3.6 is fast and reliable
 
     # Optional: store uploads in Supabase Storage instead of UPLOAD_DIR
     SUPABASE_URL: str = ""

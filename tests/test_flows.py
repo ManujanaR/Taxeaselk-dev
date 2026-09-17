@@ -11,6 +11,7 @@ import pytest
 _tmp = tempfile.mkdtemp()
 os.environ.update({
     "DATABASE_URL": f"sqlite:///{_tmp}/test.db", "SECRET_KEY": "test-secret-key-that-is-long-enough-for-hs256", "UPLOAD_DIR": f"{_tmp}/uploads", "DEBUG": "true",
+    "GEMINI_API_KEY": "",  # keep extraction unconfigured in tests (overrides any .env)
 })
 
 from fastapi.testclient import TestClient  # noqa: E402
@@ -103,7 +104,7 @@ def test_full_engagement_flow(clients):
     assert r.json()["computed"]["citLiability"] == 1_560_000
     biz.put("/api/company", json={**biz.get("/api/company").json(), "citTaxRateCategory": "sme_14"})
     assert biz.get("/api/financials").json()["computed"]["citLiability"] == 728_000
-    assert biz.post("/api/financials/extract", json={"documentId": doc_id}).status_code == 503  # no GEMINI key in tests
+    assert biz.post("/api/financials/extract").status_code == 503  # docs exist, but no GEMINI key in tests
 
     # dashboard + handover
     dash = biz.get("/api/dashboard").json()

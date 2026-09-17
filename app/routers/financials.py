@@ -85,10 +85,6 @@ def put_financials(payload: InputsIn, co: Company = Depends(current_company), db
     return _view(co, fi)
 
 
-class ExtractIn(CamelModel):
-    document_id: str
-
-
 class ExtractOut(CamelModel):
     inputs: dict[str, float | None]
     confidence: dict[str, float]
@@ -96,12 +92,12 @@ class ExtractOut(CamelModel):
 
 
 @router.post("/financials/extract", response_model=ExtractOut)
-def extract_financials(payload: ExtractIn, co: Company = Depends(current_company), db: Session = Depends(get_db)):
-    doc = db.get(Document, payload.document_id)
-    if not doc or doc.company_id != co.id:
-        raise HTTPException(404, "Document not found")
-    result = extract.extract_cit_inputs(doc)
-    log(db, co.id, co.user_id, "FINANCIALS_EXTRACTED", f"Extracted figures from {doc.name} with Gemini.")
+def extract_financials(co: Company = Depends(current_company), db: Session = Depends(get_db)):
+    docs = db.query(Document).filter(Document.company_id == co.id).all()
+    if not docs:
+        raise HTTPException(400, "Upload a document first")
+    result = extract.extract_cit_inputs(docs)
+    log(db, co.id, co.user_id, "FINANCIALS_EXTRACTED", f"Extracted figures from {len(docs)} document(s) with Gemini.")
     db.commit()
     return ExtractOut(**result)
 

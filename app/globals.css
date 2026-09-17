@@ -19,3 +19,27 @@ body {
   outline: 2px solid #155dfc;
   outline-offset: 2px;
 }
+
+/* Print Computation: the CitComputationPrintout sheet is portaled to <body> as a
+   direct child. On screen it's hidden; when printing, the app shell is hidden and
+   only the sheet prints. */
+@media screen {
+  .taxease-print-root {
+    display: none;
+  }
+}
+@media print {
+  body > *:not(.taxease-print-root) {
+    display: none !important;
+  }
+  .taxease-print-root {
+    display: block !important;
+  }
+  @page {
+    margin: 0;
+  }
+}
+.taxease-print-root {
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}

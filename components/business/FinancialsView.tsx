@@ -5,12 +5,13 @@ import StatCard from "@/components/ui/StatCard";
 import Button from "@/components/ui/Button";
 import T from "@/components/layout/T";
 import CitTaxComputationBanner from "./CitTaxComputationBanner";
+import CitComputationPrintout from "./CitComputationPrintout";
 import FinancialInputsForm from "./FinancialInputsForm";
 import { lkr } from "@/lib/format";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
-import type { FinancialsView as FinancialsData, StatutoryDocument } from "@/lib/types";
+import type { Company, FinancialsView as FinancialsData, StatutoryDocument } from "@/lib/types";
 
-export default function FinancialsView({ data, documents }: { data: FinancialsData; documents: StatutoryDocument[] }) {
+export default function FinancialsView({ data, documents, company }: { data: FinancialsData; documents: StatutoryDocument[]; company: Company }) {
   const { t } = useLanguage();
   const c = data.computed;
   return (
@@ -43,6 +44,7 @@ export default function FinancialsView({ data, documents }: { data: FinancialsDa
           <div className="mt-6">
             <CitTaxComputationBanner computed={c} inputs={data.inputs!} rateCategory={data.rateCategory} />
           </div>
+          <CitComputationPrintout computed={c} inputs={data.inputs!} company={company} rateCategory={data.rateCategory} />
         </>
       ) : (
         <div className="mt-6 rounded-card border border-dashed border-gray-300 bg-white p-6 text-sm text-gray-500">
